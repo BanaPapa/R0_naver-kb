@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type AppTab = 'naver' | 'settings';
+export type AppTab = 'naver' | 'settings' | 'admin';
 
 type ModStatus = 'live' | 'soon';
 
@@ -154,9 +154,10 @@ interface SidebarProps {
   onToggleCollapse: () => void;
   userEmail?: string | null;
   onSignOut?: () => void; // 지정 시(=Supabase 로그인 상태) 로그아웃 버튼 노출
+  isAdmin?: boolean;      // 관리자면 '회원 승인' 메뉴 노출
 }
 
-export function Sidebar({ activeTab, onTabChange, collapsed, onToggleCollapse, userEmail, onSignOut }: SidebarProps) {
+export function Sidebar({ activeTab, onTabChange, collapsed, onToggleCollapse, userEmail, onSignOut, isAdmin }: SidebarProps) {
   return (
     <aside className="eos-side">
       <button className="eos-side-toggle" title="사이드바 접기" onClick={onToggleCollapse}>
@@ -196,6 +197,21 @@ export function Sidebar({ activeTab, onTabChange, collapsed, onToggleCollapse, u
         })}
 
         <div className="eos-nav-sec">시스템</div>
+        {isAdmin && (
+          <button
+            className={`eos-nav-item${activeTab === 'admin' ? ' active' : ''}`}
+            title="회원 승인"
+            onClick={() => onTabChange('admin')}
+          >
+            <svg className="ic" viewBox="0 0 24 24">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M19 8v6M22 11h-6" />
+            </svg>
+            <span className="eos-nav-label">회원 승인</span>
+            <span className="eos-dot live" />
+          </button>
+        )}
         <button
           className={`eos-nav-item${activeTab === 'settings' ? ' active' : ''}`}
           title="인증 설정"
