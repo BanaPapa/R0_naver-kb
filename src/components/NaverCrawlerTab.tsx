@@ -169,55 +169,48 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus }: NaverC
           <div className="nv-agent-paths">
             {/* 이미 설치된 경우 */}
             <div className="nv-agent-path-section">
-              <div className="nv-agent-path-label">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={14} height={14}><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                이미 설치되어 있다면
-              </div>
-              {launching ? (
-                <div className="nv-launching-state">
-                  <span className="nv-login-spinner" />
-                  에이전트를 시작하는 중입니다… (최대 15초)
+              <div className="nv-agent-path-info">
+                <div className="nv-agent-path-label">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={16} height={16}><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                  이미 설치되어 있다면
                 </div>
-              ) : launchFailed ? (
-                <>
-                  <p className="nv-agent-path-desc">
-                    기존 버전은 자동 실행이 지원되지 않습니다.
-                    <br />직접 실행 후 재연결하거나, 최신 버전을 재설치하세요.
-                  </p>
-                  <button className="btn-primary" onClick={recheckAgent}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={14} height={14} style={{ marginRight: 6 }}><path d="M23 4v6h-6M1 20v-6h6" /><path d="M20.5 8.5A9 9 0 1 0 21 12" /></svg>
-                    직접 실행 후 연결
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p className="nv-agent-path-desc">
-                    버튼을 누르면 설치된 에이전트를 자동으로 찾아 실행합니다.
-                  </p>
-                  <button className="btn-primary" onClick={launchAndWait}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={14} height={14} style={{ marginRight: 6 }}><path d="M5 3l14 9-14 9V3z"/></svg>
-                    에이전트 자동 실행
-                  </button>
-                </>
-              )}
+                <p className="nv-agent-path-desc">
+                  {launching
+                    ? '에이전트를 시작하는 중입니다… (최대 15초)'
+                    : launchFailed
+                      ? '기존 버전은 자동 실행이 지원되지 않습니다. 직접 실행 후 연결하거나, 최신 버전을 재설치하세요.'
+                      : '버튼을 누르면 설치된 에이전트를 자동으로 찾아 실행합니다.'}
+                </p>
+              </div>
+              <div className="nv-agent-path-action">
+                {launching ? (
+                  <span className="nv-login-spinner nv-spinner-lg" />
+                ) : launchFailed ? (
+                  <button className="btn-primary" onClick={recheckAgent}>직접 실행 후 연결</button>
+                ) : (
+                  <button className="btn-primary" onClick={launchAndWait}>에이전트 자동 실행</button>
+                )}
+              </div>
             </div>
 
             {/* 처음 설치 / 재설치 */}
             <div className="nv-agent-path-section nv-agent-path-install">
-              <div className="nv-agent-path-label">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={14} height={14}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                {launchFailed ? '최신 버전 재설치' : '처음 설치하는 경우'}
+              <div className="nv-agent-path-info">
+                <div className="nv-agent-path-label">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={16} height={16}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                  {launchFailed ? '최신 버전 재설치' : '처음 설치하는 경우'}
+                </div>
+                <p className="nv-agent-path-desc">
+                  {launchFailed
+                    ? '최신 버전은 자동 실행을 지원합니다. 재설치 후 버튼 한 번으로 연결됩니다.'
+                    : '아래 버튼을 눌러 에이전트를 다운로드하고 설치하세요. 설치가 완료되면 트레이 아이콘이 자동으로 나타납니다.'}
+                </p>
               </div>
-              <p className="nv-agent-path-desc">
-                {launchFailed
-                  ? '최신 버전은 자동 실행을 지원합니다. 재설치 후 버튼 한 번으로 연결됩니다.'
-                  : '아래 버튼을 눌러 에이전트를 다운로드하고 설치하세요.'}
-                <br />설치가 완료되면 트레이 아이콘이 자동으로 나타납니다.
-              </p>
-              <button className="btn-outline" onClick={() => setShowInstallModal(true)}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={14} height={14} style={{ marginRight: 6 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                {launchFailed ? '최신 버전 다운로드' : '에이전트 다운로드'}
-              </button>
+              <div className="nv-agent-path-action">
+                <button className="btn-outline" onClick={() => setShowInstallModal(true)}>
+                  {launchFailed ? '최신 버전 다운로드' : '에이전트 다운로드'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

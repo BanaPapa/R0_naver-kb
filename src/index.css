@@ -2206,9 +2206,9 @@ input[type='range'].space-range:disabled {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 24px;
-  padding: 48px 48px;
-  max-width: 880px;
+  gap: 28px;
+  padding: 56px 48px;
+  max-width: 900px;
   width: 100%;
   color: var(--muted);
 }
@@ -2219,19 +2219,19 @@ input[type='range'].space-range:disabled {
   opacity: 0.8;
 }
 .nv-agent-offline h2 {
-  font-size: 26px;
+  font-size: 32px;
   font-weight: 800;
   color: var(--fg);
   letter-spacing: -0.02em;
   margin: 0;
 }
-.nv-agent-offline p {
-  font-size: 15px;
+.nv-agent-offline > p {
+  font-size: 20px;
   line-height: 1.7;
   color: var(--muted);
   margin: 0;
 }
-.nv-agent-offline p b {
+.nv-agent-offline > p b {
   color: var(--accent);
   font-weight: 700;
 }
@@ -2294,39 +2294,49 @@ input[type='range'].space-range:disabled {
 /* ── 에이전트 오프라인: 두 경로 (재실행 / 신규설치) ── */
 .nv-agent-paths {
   display: flex;
-  flex-direction: row;
-  gap: 20px;
+  flex-direction: column;
+  gap: 16px;
   width: 100%;
 }
 .nv-agent-path-section {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 14px;
-  flex: 1;
+  gap: 32px;
+  width: 100%;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 28px 32px;
+  padding: 28px 36px;
+}
+.nv-agent-path-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+  text-align: left;
   word-break: keep-all;
   overflow-wrap: break-word;
+}
+.nv-agent-path-action {
+  flex-shrink: 0;
 }
 .nv-agent-path-label {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 14px;
+  gap: 8px;
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--accent);
 }
 .nv-agent-path-desc {
-  font-size: 15px;
+  font-size: 20px;
   color: var(--muted);
-  line-height: 1.7;
+  line-height: 1.65;
   margin: 0;
-  text-align: center;
   word-break: keep-all;
 }
 .nv-agent-path-desc b { color: var(--fg); }
@@ -2334,11 +2344,13 @@ input[type='range'].space-range:disabled {
 .nv-agent-path-section .btn-outline {
   display: flex;
   align-items: center;
-  height: 44px;
-  padding: 0 24px;
-  font-size: 15px;
+  justify-content: center;
+  height: 50px;
+  padding: 0 28px;
+  font-size: 17px;
   border-radius: 10px;
-  margin-top: 4px;
+  white-space: nowrap;
+  min-width: 180px;
 }
 .nv-agent-path-install .btn-outline {
   box-shadow: inset 0 0 0 1.5px var(--border);
@@ -2457,6 +2469,12 @@ input[type='range'].space-range:disabled {
   color: var(--txt-2);
   font-size: 13px;
   padding: 10px 0 4px;
+}
+.nv-spinner-lg {
+  width: 28px;
+  height: 28px;
+  border-width: 3px;
+  flex-shrink: 0;
 }
 .nv-login-error {
   background: rgba(255, 80, 80, 0.12);
