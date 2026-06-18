@@ -83,7 +83,14 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus }: NaverC
 
   const handleInstallConsent = () => {
     setInstallDone(true);
-    window.location.href = AGENT_DOWNLOAD_URL;
+    // state 업데이트가 렌더링된 후 다운로드 트리거 (완료 화면이 먼저 표시되도록)
+    setTimeout(() => {
+      const a = document.createElement('a');
+      a.href = AGENT_DOWNLOAD_URL;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { if (a.parentNode) a.parentNode.removeChild(a); }, 200);
+    }, 80);
   };
 
   const handleCloseInstallModal = () => {
@@ -148,8 +155,8 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus }: NaverC
   // 첫 수집 전(idle)에는 결과 영역(헤더 포함)을 대형 안내로 가린다.
   const showEmptyState = state.status === 'idle';
 
-  // 에이전트 미실행 시 안내 화면 표시
-  if (agentRunStatus === 'offline') {
+  // 에이전트 미실행 또는 초기 상태(unknown)일 때 안내 화면 표시
+  if (agentRunStatus === 'offline' || agentRunStatus === 'unknown') {
     return (
       <div className="eos-state-screen">
         <div className="nv-agent-offline">

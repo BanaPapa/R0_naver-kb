@@ -3444,13 +3444,13 @@ input[type='range'].space-range:disabled {
 }
 .nv-install-done-title {
   margin: 0;
-  font-size: 16px;
+  font-size: 21px;
   font-weight: 700;
   color: var(--blue);
 }
 .nv-install-done-desc {
   margin: 0;
-  font-size: 13px;
+  font-size: 18px;
   color: var(--muted);
   line-height: 1.7;
 }
