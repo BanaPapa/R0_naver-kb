@@ -2432,7 +2432,7 @@ input[type='range'].space-range:disabled {
   border-radius: 11px;
   background: var(--blue);
   color: #fff;
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
@@ -2497,7 +2497,7 @@ input[type='range'].space-range:disabled {
   border-radius: 10px;
   padding: 12px 16px;
   max-width: 440px;
-  font-size: 13px;
+  font-size: 16px;
   color: var(--fg-2);
   line-height: 1.6;
   text-align: left;
