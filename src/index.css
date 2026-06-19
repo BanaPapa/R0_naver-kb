@@ -1516,15 +1516,14 @@ body {
 .nv-progress-bar {
   height: 6px;
   border-radius: 99px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--border-2);
   overflow: hidden;
 }
 .nv-progress-bar i {
   display: block;
   height: 100%;
   border-radius: 99px;
-  background: linear-gradient(90deg, var(--blue), var(--teal));
-  box-shadow: 0 0 10px rgba(79, 141, 255, 0.5);
+  background: linear-gradient(90deg, var(--cp-blue), var(--cp-teal));
   transition: width 0.3s var(--ease);
 }
 .nv-progress-pct {

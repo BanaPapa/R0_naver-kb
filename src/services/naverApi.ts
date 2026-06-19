@@ -570,45 +570,25 @@ export interface AcquisitionCostResult {
 export async function getAcquisitionCost(
   articleNo: string,
   complexNo: number,
-  dealPriceWon: number,      // 원 단위 — API 호출 시 만원으로 변환
+  _dealPriceWon: number,  // 서명 유지용 (new.land 응답에 articleTax 포함)
 ): Promise<AcquisitionCostResult | null> {
-  const dealPriceManwon = Math.round(dealPriceWon / 10_000);
-  // fin.land POST 시도
   try {
-    const data = await naverPost('/complex/article/acquisition-cost', {
-      articleNumber: articleNo,
-      complexNumber: String(complexNo),
-      dealPrice: dealPriceManwon,
-    }) as Record<string, unknown>;
-    const r = (data.result ?? data) as Record<string, unknown>;
+    // new.land /api/articles/{articleNo} 응답의 articleTax에 취득세/중개보수가 포함됨
+    const params: Record<string, unknown> = {};
+    if (complexNo > 0) params.complexNo = complexNo;
+    const data = await naverNewFetch(
+      `/api/articles/${encodeURIComponent(articleNo)}`,
+      params,
+    ) as Record<string, unknown>;
+    const tax = (data.articleTax ?? {}) as Record<string, unknown>;
     const toNum = (v: unknown) => Number(v ?? 0);
-    if (toNum(r.acquisitionTax) > 0 || toNum(r.totalPrice) > 0) {
-      return {
-        acquisitionTax: toNum(r.acquisitionTax),
-        eduTax:         toNum(r.eduTax),
-        specialTax:     toNum(r.specialTax),
-        totalPrice:     toNum(r.totalPrice),
-        brokerFee:      toNum(r.brokerFee),
-      };
-    }
-  } catch (e) {
-    console.warn('[AcquisitionCost] fin.land POST 실패, GET 시도:', e);
-  }
-  // fin.land GET 시도 (파라미터명 변형)
-  try {
-    const data = await naverFetch('/complex/article/acquisition-cost', {
-      articleNumber: articleNo,
-      complexNumber: complexNo,
-      dealPrice: dealPriceManwon,
-    }) as Record<string, unknown>;
-    const r = (data.result ?? data) as Record<string, unknown>;
-    const toNum = (v: unknown) => Number(v ?? 0);
+    if (toNum(tax.totalPrice) === 0 && toNum(tax.acquisitionTax) === 0) return null;
     return {
-      acquisitionTax: toNum(r.acquisitionTax),
-      eduTax:         toNum(r.eduTax),
-      specialTax:     toNum(r.specialTax),
-      totalPrice:     toNum(r.totalPrice),
-      brokerFee:      toNum(r.brokerFee),
+      acquisitionTax: toNum(tax.acquisitionTax),
+      eduTax:         toNum(tax.eduTax),
+      specialTax:     toNum(tax.specialTax),
+      totalPrice:     toNum(tax.totalPrice),
+      brokerFee:      toNum(tax.brokerFee),
     };
   } catch (e) {
     console.error('[AcquisitionCost] 매입비용 조회 실패:', e);

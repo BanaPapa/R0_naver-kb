@@ -34,6 +34,15 @@ export function normalizeArticleInfo(
   // NaN 방지를 위해 || 0 패턴 사용.
   const num = (v: unknown): number => Number(v) || 0;
 
+  // fin.land /complex/article/list: dealPrice는 원 단위, premiumPrice/optionPrice는 만원 단위
+  const dealWon    = num(pi.dealPrice);
+  const premiumWon = num(pi.premiumPrice) * 10_000;
+  const optionWon  = num(pi.optionPrice)  * 10_000;
+  // 분양권: isalePrice = 매매가 - 프리미엄 - 옵션비용 (fin.land list에 isalePrice 필드 없음)
+  const retype = String(info.realEstateType ?? '');
+  const isPresale  = retype === 'ABYG' || retype === 'OBYG';
+  const isaleWon   = isPresale && dealWon > 0 ? Math.max(0, dealWon - premiumWon - optionWon) : 0;
+
   return {
     midName: '',
     smallName: '',
@@ -41,17 +50,17 @@ export function normalizeArticleInfo(
     complexName: String(complexName ?? info.complexName ?? ''),
     dongName: String(info.dongName ?? ''),
     articleNumber: String(info.articleNumber ?? ''),
-    realEstateType: String(info.realEstateType ?? ''),
+    realEstateType: retype,
     tradeType: String(info.tradeType ?? ''),
-    dealPrice: num(pi.dealPrice),
+    dealPrice: dealWon,
     warrantyPrice: num(pi.warrantyPrice),
     rentPrice: num(pi.rentPrice),
     managementFee: num(pi.managementFeeAmount),
     priceChangeStatus: num(pi.priceChangeStatus),
     priceChangeHistories: pi.priceChangeHistories,
-    isalePrice: 0,
-    premiumPrice: num(pi.premiumPrice),
-    optionPrice: num(pi.optionPrice),
+    isalePrice: isaleWon,
+    premiumPrice: premiumWon,
+    optionPrice: optionWon,
     supplySpace: num(sp.supplySpace),
     exclusiveSpace: num(sp.exclusiveSpace),
     contractSpace: num(sp.contractSpace),

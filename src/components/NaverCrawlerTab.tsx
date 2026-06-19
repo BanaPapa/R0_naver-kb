@@ -65,28 +65,30 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus }: NaverC
     }
   }, [loginJustSucceeded]);
 
-  // agentRunStatus가 일시적으로 offline/unknown으로 바뀌어도 15초 간 이전 상태 유지
+  // agentRunStatus가 일시적으로 offline/unknown으로 바뀌어도 30초 간 이전 상태 유지
   // (탭 전환 후 복귀 시 polling 간격에 의한 순간 상태 변화로 SearchPanel 언마운트 방지)
   const lastRunningAtRef = useRef<number>(0);
   if (agentRunStatus === 'running') lastRunningAtRef.current = Date.now();
-  const GRACE_MS = 15_000;
+  const GRACE_MS = 30_000;
   const stableRunning =
     agentRunStatus === 'running' ||
     Date.now() - lastRunningAtRef.current < GRACE_MS;
 
   // 에이전트 상태 변경 시 베이스 URL + 크롤 토큰 관리
+  // grace period 중에는 agent base URL을 유지 (일시적 offline에도 API 호출 정상화)
   useEffect(() => {
-    const agentRunning = agentRunStatus === 'running';
-    setNaverBases(agentRunning);
+    const isStable = agentRunStatus === 'running' ||
+      Date.now() - lastRunningAtRef.current < GRACE_MS;
+    setNaverBases(isStable);
 
-    if (agentRunning && session?.access_token) {
+    if (isStable && session?.access_token) {
       fetchCrawlToken(session.access_token)
         .then((token: string) => setNaverCrawlToken(token))
         .catch((err: unknown) => {
           const msg = err instanceof Error ? err.message : String(err);
           setNotice(`크롤 토큰 발급 실패: ${msg}`);
         });
-    } else {
+    } else if (!isStable) {
       setNaverCrawlToken(null);
     }
   }, [agentRunStatus, session]);
