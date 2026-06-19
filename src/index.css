@@ -2733,15 +2733,19 @@ thead .col-resize-handle:active {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+/* td-complex는 td 내부의 div에 적용 — td에 직접 flex 적용 시 box-shadow 경계가 어긋남 */
 .td-complex {
   display: flex;
   align-items: center;
   gap: 6px;
+  overflow: hidden;
 }
 .complex-name {
   color: var(--fg);
   font-weight: 700;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .realtor-badge {
   font-size: 13px;
@@ -2836,10 +2840,15 @@ thead .col-resize-handle:active {
 /* ── 중복 매물 행 ── */
 .row-duplicate td {
   background: rgba(255, 255, 255, 0.018);
-  color: var(--fg-2);
+  color: var(--muted-2);
 }
 .row-duplicate .complex-name {
-  color: var(--fg-2);
+  color: var(--muted);
+  font-weight: 400;
+}
+.row-duplicate .price-value,
+.row-duplicate .td-pyeong {
+  color: var(--muted);
   font-weight: 500;
 }
 .dup-indent {

@@ -222,6 +222,7 @@ export function ResultTable({ properties, realEstateType, areaUnit, priceUnit, m
   const [spaceMax, setSpaceMax]             = useState(0);
   const [page, setPage]                     = useState(0);
   const [selectedRow, setSelectedRow]       = useState<string | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [modalState, setModalState]         = useState<ModalState | null>(null);
   const [detailCache, setDetailCache]       = useState<Map<string, CachedDetail>>(new Map());
   const [colWidths, setColWidths]           = useState<Record<string, number>>(() => loadColWidths(userId));
@@ -230,6 +231,20 @@ export function ResultTable({ properties, realEstateType, areaUnit, priceUnit, m
 
   // Sync colWidths when userId changes (login/logout)
   useEffect(() => { setColWidths(loadColWidths(userId)); }, [userId]);
+
+  // 분양권 페이지 자동 detail 패치 (프리미엄/옵션비용은 fin.land 목록 API에 없음)
+  useEffect(() => {
+    if (!isPresale) return;
+    const toFetch = paginated.filter((p) => !detailCacheRef.current.has(p.articleNumber));
+    if (toFetch.length === 0) return;
+    const timers = toFetch.map((p, i) =>
+      setTimeout(() => {
+        if (!detailCacheRef.current.has(p.articleNumber)) ensureDetail(p);
+      }, i * 450),
+    );
+    return () => timers.forEach(clearTimeout);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paginated, isPresale]);
 
   const priceUnitLabel = priceUnit === 'thousand' ? '천원' : '만원';
 
@@ -589,6 +604,9 @@ export function ResultTable({ properties, realEstateType, areaUnit, priceUnit, m
                 const isExpanded = isExpandable && (
                   isDupHidden ? expandedGroups.has(p.groupId!) : !expandedGroups.has(p.groupId!)
                 );
+                // 대표 행을 선택하면 중복 하위 행도 같이 강조
+                const isInSelectedGroup = !!(isDup && p.groupId && selectedGroupId === p.groupId);
+                const isHighlighted = selectedRow === rowKey || isInSelectedGroup;
 
                 const effPremium = getEffPremium(p);
                 const effOption  = getEffOption(p);
@@ -601,10 +619,14 @@ export function ResultTable({ properties, realEstateType, areaUnit, priceUnit, m
                   <tr
                     key={rowKey}
                     className={[
-                      isSelected ? 'row-selected' : '',
+                      isHighlighted ? 'row-selected' : '',
                       isDup ? 'row-duplicate' : '',
                     ].filter(Boolean).join(' ') || undefined}
-                    onClick={() => setSelectedRow((sel) => sel === rowKey ? null : rowKey)}
+                    onClick={() => {
+                      const isAlreadySel = selectedRow === rowKey;
+                      setSelectedRow(isAlreadySel ? null : rowKey);
+                      setSelectedGroupId(isAlreadySel ? null : (p.groupId ?? null));
+                    }}
                     onDoubleClick={() => {
                       if (!isExpandable) return;
                       setExpandedGroups((prev) => {
@@ -623,20 +645,22 @@ export function ResultTable({ properties, realEstateType, areaUnit, priceUnit, m
                         {TRADE_TYPE_LABELS[p.tradeType] ?? p.tradeType}
                       </span>
                     </td>
-                    <td className="td-complex">
-                      {isDup && <span className="dup-indent">└</span>}
-                      <span className="complex-name">{p.complexName}</span>
-                      {badgeCount > 0 && (
-                        <span
-                          className="realtor-badge"
-                          title={isExpandable ? '더블클릭으로 펼치기/접기' : undefined}
-                        >
-                          +{badgeCount}
-                        </span>
-                      )}
-                      {isExpandable && (
-                        <span className="group-expand-icon">{isExpanded ? '▾' : '▸'}</span>
-                      )}
+                    <td>
+                      <div className="td-complex">
+                        {isDup && <span className="dup-indent">└</span>}
+                        <span className="complex-name">{p.complexName}</span>
+                        {badgeCount > 0 && (
+                          <span
+                            className="realtor-badge"
+                            title={isExpandable ? '더블클릭으로 펼치기/접기' : undefined}
+                          >
+                            +{badgeCount}
+                          </span>
+                        )}
+                        {isExpandable && (
+                          <span className="group-expand-icon">{isExpanded ? '▾' : '▸'}</span>
+                        )}
+                      </div>
                     </td>
                     <td>{p.dongName || '-'}</td>
                     <td>{p.floorInfo || '-'}</td>
