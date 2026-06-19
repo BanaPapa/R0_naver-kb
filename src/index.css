@@ -100,18 +100,21 @@
 }
 /* 가격 강조색: 라이트=진한 파랑, 다크=밝은 파랑 */
 :root {
-  --price-accent: #6fb3ff;
-  /* 분양권 매매가/평당가(분양권) 주강조: price-accent에서 +20% 밝게 */
-  --presale-main: #d7e9ff;
-  /* CrawlModal/ProgressPanel 강조색: 테마별 +/-20% 명도 적용 */
-  --cp-teal: #87ded6;
-  --cp-blue: #b3cbff;
+  /* 단일 accent(--blue, 설정에서 런타임 변경됨) 기반 강조색.
+     --accent-strong: 같은 계열에서 명도 2단계 강조 — dark=더 밝게 / light=더 진하게.
+     진행/모달/가격 강조를 모두 여기에 종속시켜 테마(accent) 변경 시 일괄 반영된다. */
+  --accent-strong: color-mix(in srgb, var(--blue) 78%, #fff 22%);
+  --price-accent: var(--blue);
+  /* 분양권 매매가/평당가(분양권) 주강조 */
+  --presale-main: var(--accent-strong);
+  /* CrawlModal/ProgressPanel 강조색 */
+  --cp-teal: var(--accent-strong);
+  --cp-blue: var(--blue);
 }
 :root[data-theme='light'] {
-  --price-accent: #1851c4;
-  --presale-main: #0e2c67;
-  --cp-teal: #1e7a72;
-  --cp-blue: #0049e6;
+  /* light 테마: 같은 계열 2단계 어둡게(진하게). --price-accent/--presale-main/--cp-*는
+     위 :root에서 var(--blue)/var(--accent-strong)로 참조하므로 자동 반영된다. */
+  --accent-strong: color-mix(in srgb, var(--blue) 80%, #000 22%);
 }
 
 *,
@@ -567,8 +570,8 @@ body {
   height: 58px;
   margin-bottom: 16px;
   border-radius: 50%;
-  border: 5px solid var(--teal-dim);
-  border-top-color: var(--cp-teal);
+  border: 5px solid var(--blue-dim);
+  border-top-color: var(--accent-strong);
   animation: cm-spin 0.8s linear infinite;
 }
 @keyframes cm-spin { to { transform: rotate(360deg); } }
@@ -633,7 +636,7 @@ body {
   color: var(--fg);
   font-variant-numeric: tabular-nums;
 }
-.cm-stat .cm-v.accent { color: var(--blue); }
+.cm-stat .cm-v.accent { color: var(--accent-strong); }
 .cm-stat .cm-l { font-size: 16px; color: var(--muted); }
 .cm-result-btn {
   width: 100%;

@@ -149,8 +149,10 @@ export class CrawlerService {
     if (ctx.passSpace(tagged)) {
       this.opts.onProperty(tagged);
       ctx.totalProperties++;
-      // 분양권은 목록 API에 가격이 없음 → 수집 완료 후 상세 API로 보강할 대상에 등록
-      if (isPresaleType(tagged.realEstateType) && tagged.articleNumber) {
+      // 분양권은 목록 API에 가격이 없음 → 수집 완료 후 상세 API로 보강할 대상에 등록.
+      // 판정은 검색 상품 유형(opts.realEstateType) 기준 — 목록 API가 주는 개별 매물의
+      // realEstateType 표기에 의존하지 않도록 (값이 코드와 다를 수 있음).
+      if (isPresaleType(this.opts.realEstateType) && tagged.articleNumber) {
         ctx.presaleRefs.push({
           articleNumber: tagged.articleNumber,
           complexNumber: tagged.complexNumber,
