@@ -140,3 +140,88 @@ create policy "naver_slots_update_own" on public.naver_slots
 drop policy if exists "naver_slots_delete_own" on public.naver_slots;
 create policy "naver_slots_delete_own" on public.naver_slots
   for delete using (auth.uid() = user_id);
+
+-- ============================================================
+-- 검색 활동 로그 (검색 1회 = 1행, 결과 매물 제외 / 보존 6개월)
+-- ============================================================
+create table if not exists public.search_logs (
+  id               uuid primary key default gen_random_uuid(),
+  user_id          uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  large_name       text,
+  mid_name         text,
+  small_name       text,
+  real_estate_type text not null,
+  trade_type       text,
+  area_label       text,
+  status           text not null default 'running'
+                     check (status in ('running','done','error','stopped')),
+  result_count     int,
+  error_message    text,
+  created_at       timestamptz not null default now(),
+  ended_at         timestamptz
+);
+create index if not exists idx_search_logs_user_created
+  on public.search_logs (user_id, created_at desc);
+
+alter table public.search_logs enable row level security;
+
+drop policy if exists "search_logs_insert_own" on public.search_logs;
+create policy "search_logs_insert_own" on public.search_logs
+  for insert with check (user_id = auth.uid());
+
+drop policy if exists "search_logs_update_own" on public.search_logs;
+create policy "search_logs_update_own" on public.search_logs
+  for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+drop policy if exists "search_logs_select_own_or_admin" on public.search_logs;
+create policy "search_logs_select_own_or_admin" on public.search_logs
+  for select using (user_id = auth.uid() or public.is_admin());
+
+-- 6개월 초과 로그 정리 함수 (pg_cron 가능 시 스케줄 등록)
+create or replace function public.cleanup_old_search_logs()
+returns void language sql security definer set search_path = public as $$
+  delete from public.search_logs where created_at < now() - interval '6 months';
+$$;
+-- pg_cron 사용 가능 환경에서만 (Supabase Dashboard → Database → Extensions 에서 pg_cron 활성화 후):
+-- select cron.schedule('cleanup_search_logs', '0 3 * * *', $$select public.cleanup_old_search_logs()$$);
+
+-- ============================================================
+-- 1:1 문의 (1행 = 스레드 메시지 1개, 사용자당 1스레드 = user_id)
+-- ============================================================
+create table if not exists public.inquiries (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid not null references auth.users (id) on delete cascade,
+  sender_role   text not null check (sender_role in ('user','admin')),
+  body          text not null,
+  context       jsonb,
+  read_by_admin boolean not null default false,
+  read_by_user  boolean not null default false,
+  created_at    timestamptz not null default now()
+);
+create index if not exists idx_inquiries_user_created
+  on public.inquiries (user_id, created_at);
+
+alter table public.inquiries enable row level security;
+
+drop policy if exists "inquiries_select_own_or_admin" on public.inquiries;
+create policy "inquiries_select_own_or_admin" on public.inquiries
+  for select using (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "inquiries_insert_scoped" on public.inquiries;
+create policy "inquiries_insert_scoped" on public.inquiries
+  for insert with check (
+    (user_id = auth.uid() and sender_role = 'user')
+    or (public.is_admin() and sender_role = 'admin')
+  );
+
+drop policy if exists "inquiries_update_visible" on public.inquiries;
+create policy "inquiries_update_visible" on public.inquiries
+  for update using (user_id = auth.uid() or public.is_admin())
+              with check (user_id = auth.uid() or public.is_admin());
+
+-- Realtime 발행 (이미 추가돼 있으면 에러 무시)
+do $$
+begin
+  alter publication supabase_realtime add table public.inquiries;
+exception when duplicate_object then null;
+end $$;
