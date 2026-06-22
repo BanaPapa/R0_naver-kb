@@ -2,7 +2,7 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 // @ts-expect-error — .mjs Node 모듈 (개발 서버 전용, 타입 선언 없음)
 import { getNaverLandToken } from './server/naverTokenProvider.mjs';
-import { issueCrawlToken } from './api/_crawlTokenCore';
+import { issueCrawlToken } from './lib/crawlTokenCore';
 
 // 로컬 개발용 /api/crawl-token 미들웨어.
 // Vercel 서버리스 함수 api/crawl-token.ts는 vite dev에서 서빙되지 않으므로,

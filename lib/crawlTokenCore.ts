@@ -1,7 +1,12 @@
 // 크롤 토큰 발급 공용 코어 — Vercel 서버리스 함수(api/crawl-token.ts)와
 // 로컬 개발용 Vite 미들웨어(vite.config.ts)가 함께 사용한다.
-// 파일명 `_` 접두사 → Vercel 파일시스템 라우팅에서 제외(엔드포인트로 노출 안 됨).
-// 의존성은 node 내장(crypto)과 전역 fetch뿐 → vite.config에서도 안전하게 import 가능.
+//
+// ⚠️ 이 파일은 반드시 `api/` 밖에 둔다.
+//   Vercel은 `api/` 안의 `_` 접두 파일을 배포에서 제외(404)하는데, 과거 이 코어가
+//   `api/_crawlTokenCore.ts` 에 있어 api/crawl-token.ts 가 런타임에 이 모듈을 찾지 못해
+//   FUNCTION_INVOCATION_FAILED(맨 500)로 크래시했다. (참조: docs 디버그 기록)
+//   api/ 밖의 일반 모듈은 esbuild 번들에 정상 포함되므로 안전하다.
+// 의존성은 node 내장(crypto)과 전역 fetch뿐.
 import { createHmac, timingSafeEqual } from 'crypto';
 
 export const TOKEN_TTL_SECONDS = 600; // 10분
