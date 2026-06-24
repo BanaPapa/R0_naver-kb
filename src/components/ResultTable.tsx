@@ -478,6 +478,10 @@ export function ResultTable({ searchKey, status, properties, realEstateType, are
       setSortKey(key);
       setSortDir('asc');
     }
+    setIsDupHidden(true);
+    setExpandedGroups(new Set());
+    setSelectedRow(null);
+    setSelectedGroupId(null);
     setPage(0);
     tableWrapperRef.current?.scrollTo({ top: 0 });
   };
@@ -977,7 +981,18 @@ export function ResultTable({ searchKey, status, properties, realEstateType, are
               </tr>
             ) : (
               paginated.map((p, idx) => {
-                const rowKey = p._uid ? String(p._uid) : (p.articleNumber || String(idx));
+                const rowKey = p._uid
+                  ? String(p._uid)
+                  : [
+                      p.isDuplicate ? 'dup' : 'rep',
+                      p.groupId ?? '',
+                      p.articleNumber ?? '',
+                      p.brokerageName ?? '',
+                      p.articleFeature ?? '',
+                      p.dongName ?? '',
+                      p.floorInfo ?? '',
+                      idx,
+                    ].join('|');
                 const isSelected = selectedRow === rowKey;
                 const isDup = !!p.isDuplicate;
 
