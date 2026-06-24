@@ -432,6 +432,9 @@ export function ResultTable({ searchKey, status, properties, realEstateType, are
     ensureAcquisitionCost(p.articleNumber, p.complexNumber, priceWon);
   }, [ensureAcquisitionCost]);
 
+  // ── Table wrapper ref (scroll-to-top on sort) ──
+  const tableWrapperRef = useRef<HTMLDivElement>(null);
+
   // ── Column resize ──
   const colWidthsRef = useRef(colWidths);
   colWidthsRef.current = colWidths;
@@ -476,6 +479,7 @@ export function ResultTable({ searchKey, status, properties, realEstateType, are
       setSortDir('asc');
     }
     setPage(0);
+    tableWrapperRef.current?.scrollTo({ top: 0 });
   };
 
   const dataInfo = useMemo(() => ({
@@ -592,23 +596,21 @@ export function ResultTable({ searchKey, status, properties, realEstateType, are
     };
 
     const sortedReps = [...reps].sort(cmp);
-    // 자식(중복)은 '그룹 내부'에서만 같은 기준(cmp)으로 정렬한다.
-    //  - 그룹의 위치는 항상 대표(rep) 값 기준 → 그룹끼리 섞이지 않는다.
-    //  - 대표는 자식보다 싸든 비싸든 항상 그룹 선두에 고정(아래 [rep, ...] 순서).
-    //  - 펼쳤을 때 각 그룹 내부는 정렬되어 보인다(열 전체가 단조 증가하진 않음 — 그룹 경계 유지).
-    const sortedChildrenOf = (gid: string | undefined): Property[] =>
-      gid ? [...(childMap.get(gid) ?? [])].sort(cmp) : [];
 
-    // 4. All data for export (always fully expanded)
-    const allFil: Property[] = sortedReps.flatMap((rep) => [rep, ...sortedChildrenOf(rep.groupId)]);
+    // 4. All data for export (reps sorted + each rep's children in original order)
+    const allFil: Property[] = sortedReps
+      .flatMap((rep) => [rep, ...(childMap.get(rep.groupId!) ?? [])]);
 
     // 5. Display rows with expansion state
     const isGroupExpanded = (gid: string) =>
       isDupHidden ? expandedGroups.has(gid) : !expandedGroups.has(gid);
 
+    // 부모(rep)만 정렬 기준으로 순서 결정.
+    // 자식은 정렬 대상이 아니며, 부모 바로 아래에 원래 순서 그대로 붙는다.
+    // 부모가 어디로 이동하든 자식은 항상 해당 부모 바로 아래에만 위치한다.
     const displayRows: Property[] = sortedReps.flatMap((rep) => {
       const expanded = rep.groupId ? isGroupExpanded(rep.groupId) : false;
-      return expanded ? [rep, ...sortedChildrenOf(rep.groupId)] : [rep];
+      return expanded ? [rep, ...(childMap.get(rep.groupId!) ?? [])] : [rep];
     });
 
     // 6. Paginate
@@ -902,7 +904,7 @@ export function ResultTable({ searchKey, status, properties, realEstateType, are
       </div>
 
       {/* Table */}
-      <div className="table-wrapper">
+      <div className="table-wrapper" ref={tableWrapperRef}>
         <table className="result-table" style={{ tableLayout: 'fixed', width: totalTableWidth }}>
           <colgroup>
             {activeColKeys.map((k) => <col key={k} style={{ width: cw(k) }} />)}
