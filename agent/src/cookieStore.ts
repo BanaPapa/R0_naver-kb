@@ -10,6 +10,18 @@ interface Store {
 
 let store: Store = { cookie: '', bearer: '', loginDate: null };
 
+export const REQUIRED_NAVER_COOKIE_NAMES = ['NID_AUT', 'NID_SES'] as const;
+
+export function hasRequiredNaverCookies(cookie: string): boolean {
+  const names = new Set(
+    cookie
+      .split(';')
+      .map((part) => part.trim().split('=')[0])
+      .filter(Boolean),
+  );
+  return REQUIRED_NAVER_COOKIE_NAMES.every((name) => names.has(name));
+}
+
 function storePath(): string {
   return path.join(app.getPath('userData'), 'naver-cookies.json');
 }
@@ -55,7 +67,7 @@ export function getBearer(): string {
 }
 
 export function hasCookies(): boolean {
-  return store.cookie !== '';
+  return hasRequiredNaverCookies(store.cookie);
 }
 
 export function getLoginDate(): string | null {
