@@ -543,9 +543,9 @@
   color: var(--fg-2);
 }
 .kb-scope .eos-seg-btn.active {
-  background: var(--raise);
-  color: var(--fg);
-  box-shadow: 0 4px 12px -6px #000, inset 0 0 0 1px var(--border-2);
+  background: var(--blue);
+  color: var(--blue-contrast, #fff);
+  box-shadow: 0 6px 16px -10px color-mix(in srgb, var(--blue) 70%, transparent);
 }
 
 .kb-scope .eos-pill {
@@ -634,32 +634,30 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 38px;
-  padding: 0 16px;
+  height: 46px;
+  padding: 0 18px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--blue);
-  color: var(--blue-contrast, #fff);
-  font-size: 15px;
+  color: #fff;
+  font-size: 16.5px;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
-  box-shadow: 0 4px 16px -8px color-mix(in srgb, var(--blue) 60%, transparent), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-  transition: transform 0.16s var(--ease), box-shadow 0.16s, filter 0.16s;
+  box-shadow: 0 6px 18px -6px var(--blue-dim), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  transition: transform 0.16s var(--ease), filter 0.16s, background 0.16s;
 }
 .kb-scope .eos-btn-primary:hover:not(:disabled) {
-  filter: brightness(1.1);
   transform: translateY(-1px);
-  box-shadow: 0 8px 22px -8px color-mix(in srgb, var(--blue) 72%, transparent), inset 0 0 0 1px rgba(255, 255, 255, 0.14);
 }
 /* 라이트 테마: 분석 버튼이 배경과 대비되도록 어두운 배경에 높은 명도 유지 */
 :root[data-theme='light'] .kb-scope .eos-btn-primary {
   background: var(--blue);
-  color: var(--blue-contrast, #fff);
-  box-shadow: 0 2px 12px -6px color-mix(in srgb, var(--blue) 48%, transparent), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  color: #fff;
+  box-shadow: 0 6px 18px -6px var(--blue-dim), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 :root[data-theme='light'] .kb-scope .eos-btn-primary:hover:not(:disabled) {
-  box-shadow: 0 4px 16px -6px color-mix(in srgb, var(--blue) 62%, transparent), inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
 }
 .kb-scope .eos-btn-primary:disabled {
   opacity: 0.45;

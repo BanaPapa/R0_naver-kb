@@ -26,12 +26,16 @@
 
 /* KB primary action buttons that must follow Settings > Theme & Color. */
 :where(.kb-scope, .kb-portal) .kb-accent-button {
+  height: 46px;
+  border: 0;
+  border-radius: 12px;
   background: var(--blue);
-  color: var(--blue-contrast, #fff);
-  box-shadow: 0 10px 24px -14px color-mix(in srgb, var(--blue) 70%, transparent);
+  color: #fff;
+  box-shadow: 0 6px 18px -6px var(--blue-dim), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 :where(.kb-scope, .kb-portal) .kb-accent-button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--blue) 88%, #fff 12%);
+  background: var(--blue);
+  transform: translateY(-1px);
 }
 :where(.kb-scope, .kb-portal) .kb-accent-button:disabled {
   background: var(--border-2);
@@ -52,6 +56,47 @@
   background-image: none;
   color: inherit;
   font: inherit;
+}
+
+/* KB controls should use the host app's soft control language, not native button chrome. */
+:where(.kb-scope, .kb-portal) button {
+  border-color: transparent;
+}
+
+:where(.kb-scope, .kb-portal) button[class*="border"]:not(.kb-accent-button) {
+  border-color: transparent !important;
+  background: var(--surface) !important;
+  color: var(--fg-2) !important;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+:where(.kb-scope, .kb-portal) button[class*="border"]:not(.kb-accent-button):hover:not(:disabled) {
+  color: var(--fg) !important;
+  box-shadow: inset 0 0 0 1px var(--border-2);
+}
+:where(.kb-scope, .kb-portal) label[class*="border"] {
+  border-color: transparent !important;
+  background: var(--surface) !important;
+  color: var(--fg-2) !important;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+:where(.kb-scope, .kb-portal) label[class*="border"]:hover {
+  box-shadow: inset 0 0 0 1px var(--border-2);
+}
+
+:where(.kb-scope, .kb-portal) .bg-blue-50,
+:where(.kb-scope, .kb-portal) .bg-blue-50\/50,
+:where(.kb-scope, .kb-portal) .bg-blue-50\/60 {
+  background: var(--blue-dim) !important;
+}
+:where(.kb-scope, .kb-portal) .border-blue-300,
+:where(.kb-scope, .kb-portal) .border-blue-500,
+:where(.kb-scope, .kb-portal) .border-blue-600 {
+  border-color: transparent !important;
+  box-shadow: inset 0 0 0 1px var(--blue);
+}
+:where(.kb-scope, .kb-portal) .text-blue-600,
+:where(.kb-scope, .kb-portal) .text-blue-700 {
+  color: var(--blue) !important;
 }
 
 /* Amber 계열 (tailwind.config 미매핑 → 직접 보정) */
@@ -84,9 +129,10 @@
   -webkit-appearance: none;
   width: 1rem;
   height: 1rem;
-  border: 1.5px solid var(--border-2);
+  border: 0;
   border-radius: 4px;
   background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border);
   cursor: pointer;
   flex: none;
   position: relative;
@@ -95,7 +141,7 @@
 }
 :where(.kb-scope, .kb-portal) input[type="checkbox"]:checked {
   background: var(--blue);
-  border-color: var(--blue);
+  box-shadow: inset 0 0 0 1px var(--blue);
 }
 :where(.kb-scope, .kb-portal) input[type="checkbox"]:checked::after {
   content: '';
@@ -117,29 +163,60 @@
 /* Select/option 배경: 테마 변수 사용 (라이트 테마에서 흰색이 아닌 배경) */
 :where(.kb-scope, .kb-portal) select,
 :where(.kb-scope, .kb-portal) input {
-  background-color: var(--surface-3) !important;
+  background-color: var(--surface) !important;
   color: var(--fg) !important;
+  border-color: transparent !important;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+:where(.kb-scope, .kb-portal) select:hover:not(:disabled),
+:where(.kb-scope, .kb-portal) input:hover:not(:disabled) {
+  box-shadow: inset 0 0 0 1px var(--border-2);
+}
+:where(.kb-scope, .kb-portal) select:focus,
+:where(.kb-scope, .kb-portal) input:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--blue), 0 0 0 3px var(--blue-dim) !important;
+}
+:where(.kb-scope, .kb-portal) select:disabled,
+:where(.kb-scope, .kb-portal) input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 :where(.kb-scope, .kb-portal) select option {
-  background-color: var(--surface-3);
+  background-color: var(--raise);
   color: var(--fg);
 }
 /* 라이트 테마: option 배경을 페이지 배경과 조화되도록 조정 */
 :root[data-theme='light'] :where(.kb-scope, .kb-portal) select option {
-  background-color: #f8f9fa;
-  color: #1f2937;
+  background-color: #eef2f8;
+  color: var(--fg);
+}
+:where(.kb-scope, .kb-portal) select option:checked {
+  background: var(--blue);
+  color: var(--blue-contrast, #fff);
 }
 
-/* 닫기 버튼 (아이콘형 — 셸과 동일 스타일) */
+:where(.kb-scope) button[aria-label$="제거"] {
+  background: var(--surface-2) !important;
+  color: var(--muted) !important;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+:where(.kb-scope) button[aria-label$="제거"]:hover {
+  background: var(--surface-2) !important;
+  color: var(--fg) !important;
+  box-shadow: inset 0 0 0 1px var(--border-2);
+}
+
+/* 닫기 버튼 (아이콘형 — 매물시세 모달 cm-close와 동일한 언어) */
 .eos-modal-x {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border-radius: 8px;
   border: 0;
-  background: none;
+  background: var(--surface-2);
   color: var(--muted);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
