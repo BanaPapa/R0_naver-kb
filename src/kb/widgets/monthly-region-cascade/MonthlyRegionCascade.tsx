@@ -6,7 +6,6 @@ import { getRegions, peekRegions, prefetchRegions, type RegionItem } from '../..
 import { buildMidOptions, type MidOption } from '../../shared/lib/kb-mid-options';
 import { monthlyLocal, type MonthlyRegionLookup } from '../../entities/monthly-data';
 import { InfoTip } from '../../shared/ui/InfoTip';
-import { RegionSyncToggle } from '../../features/region-sync';
 import { PeriodSlider } from '../region-selector/PeriodSlider';
 
 // 이동평균 기간 선택지(월)
@@ -36,8 +35,6 @@ export const MonthlyRegionCascade: React.FC = () => {
     setFromDate,
     setToDate,
     allDates,
-    loadPriceData,
-    priceLoading,
   } = useMonthlyStore();
 
   // 거래지표 탭에선 대지역(시/도·집계)만 선택 가능 + 보기 옵션을 여기서 제어 (주간 RegionSelector와 동일)
@@ -182,10 +179,7 @@ export const MonthlyRegionCascade: React.FC = () => {
     <div className="h-full flex flex-col bg-white">
       {/* 기간 선택 */}
       <div className="p-4">
-        <h2 className="mb-3 text-sm font-bold text-gray-800 tracking-wide">기간 선택</h2>
-        <RegionSyncToggle />
-
-        {/* 기간 선택 (프리셋 + 드래그 막대) — 월간 날짜축 주입 */}
+        <h2 className="text-sm font-bold text-gray-800 tracking-wide">표시기간</h2>
         <div className="mt-4">
           <PeriodSlider
             dates={allDates}
@@ -195,12 +189,15 @@ export const MonthlyRegionCascade: React.FC = () => {
             setToDate={setToDate}
           />
         </div>
+      </div>
 
-        {/* 지수 기준월 — 시세지표(지수 리베이스)에만 적용 */}
+      <div className="mx-4 border-t border-gray-100" />
+
+      <div className="min-h-[8.5rem] p-4 pt-6">
         {isPrice && (
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-xs text-gray-400">지수 기준월 (이 달 = 100.0)</label>
+          <>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-bold text-gray-800 tracking-wide">지수 기준월</h2>
               <button
                 onClick={() => setBaseLineOn(!baseLineOn)}
                 title="각 그래프에 기준월 세로선 표시 On/Off"
@@ -211,6 +208,7 @@ export const MonthlyRegionCascade: React.FC = () => {
                 세로선 {baseLineOn ? 'ON' : 'OFF'}
               </button>
             </div>
+            <p className="mb-2 text-xs text-gray-400">이 달 = 100.0</p>
             <select
               value={baseDate}
               onChange={e => setBaseDate(e.target.value)}
@@ -220,14 +218,13 @@ export const MonthlyRegionCascade: React.FC = () => {
                 <option key={d} value={d}>{d}</option>
               ))}
             </select>
-          </div>
+          </>
         )}
 
-        {/* 거래지표 보기 옵션 — 한 줄: 이동평균 토글/기간 + Y축 초기화 (주간과 동일) */}
         {isTrade && (
-          <div className="mt-3 space-y-2">
-            <div className="flex items-center gap-1 text-xs text-gray-400">
-              <span>거래지표 보기</span>
+          <>
+            <div className="mb-3 flex items-center gap-1">
+              <h2 className="text-sm font-bold text-gray-800 tracking-wide">거래지표 보기</h2>
               <InfoTip text={TRADE_VIEW_HELP} />
             </div>
             <div className="flex items-center gap-1.5">
@@ -257,11 +254,11 @@ export const MonthlyRegionCascade: React.FC = () => {
                 Y축 초기화
               </button>
             </div>
-          </div>
+          </>
         )}
       </div>
 
-      <div className="mx-4 mt-4 border-t border-gray-100" />
+      <div className="mx-4 border-t border-gray-100" />
 
       {/* Cascading region selector (주간 RegionSelector와 동일 구조) */}
       <div className="p-4 pt-6 flex flex-col gap-3 border-b border-gray-100">
@@ -358,7 +355,7 @@ export const MonthlyRegionCascade: React.FC = () => {
               ? '이미 추가된 지역입니다'
               : undefined
           }
-          className="w-full py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:cursor-not-allowed text-white disabled:text-gray-400 text-sm font-semibold rounded-lg transition-colors"
+          className="kb-accent-button w-full py-3 disabled:cursor-not-allowed text-base font-semibold transition-colors"
         >
           {target
             ? alreadyAdded
@@ -405,14 +402,6 @@ export const MonthlyRegionCascade: React.FC = () => {
             ))}
           </div>
         )}
-
-        <button
-          onClick={loadPriceData}
-          disabled={selectedRegions.length === 0 || priceLoading}
-          className="kb-accent-button w-full py-3 disabled:cursor-not-allowed text-base font-semibold rounded-lg transition-colors"
-        >
-          {priceLoading ? '로딩 중...' : '비교하기'}
-        </button>
       </div>
 
       {/* Footer */}

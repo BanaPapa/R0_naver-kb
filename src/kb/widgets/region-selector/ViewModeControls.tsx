@@ -1,4 +1,5 @@
 import { useMonthlyStore, type ViewMode, type WeeklyTab } from '../../shared/lib/monthly-store';
+import { RegionSyncToggle } from '../../features/region-sync';
 
 const MODE_TABS: { key: ViewMode; label: string }[] = [
   { key: 'weekly', label: '주간' },
@@ -29,6 +30,7 @@ export function ViewModeControls({ compact = false }: ViewModeControlsProps) {
 
   return (
     <div className={`kb-view-controls${compact ? ' compact' : ''}`}>
+      {compact && <RegionSyncToggle inline />}
       <div className="eos-seg">
         {MODE_TABS.map(t => (
           <button
