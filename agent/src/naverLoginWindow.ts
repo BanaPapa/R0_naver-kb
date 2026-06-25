@@ -1,9 +1,21 @@
 import { BrowserWindow, session } from 'electron';
-import { setCookie, setBearer, getBearer } from './cookieStore';
+import type { Cookie, Session } from 'electron';
+import { setCookie, setBearer, getBearer, hasRequiredNaverCookies } from './cookieStore';
 
 const PARTITION = 'persist:naver';
 const LOGIN_URL =
   'https://nid.naver.com/nidlogin.login?mode=form&url=https%3A%2F%2Fland.naver.com%2F';
+const FIN_LAND_WARMUP_URL = 'https://fin.land.naver.com/map';
+const NEW_LAND_WARMUP_URL = 'https://new.land.naver.com/houses';
+const COOKIE_READY_MAX_WAIT_MS = 15_000;
+const COOKIE_POLL_MS = 300;
+
+const NAVER_COOKIE_URLS = [
+  'https://nid.naver.com',
+  'https://land.naver.com',
+  'https://new.land.naver.com',
+  'https://fin.land.naver.com',
+];
 
 // Bearer 캡처 폴링 간격
 const BEARER_POLL_MS = 300;
@@ -11,6 +23,48 @@ const BEARER_POLL_MS = 300;
 const BEARER_MAX_WAIT_MS = 10_000;
 // 전체 최대 대기 시간 (3분)
 const MAX_WAIT_MS = 3 * 60 * 1000;
+
+function mergeCookies(cookies: Cookie[]): string {
+  const merged = new Map<string, string>();
+  for (const cookie of cookies) {
+    if (!cookie.name || !cookie.value) continue;
+    merged.set(cookie.name, cookie.value);
+  }
+  return Array.from(merged.entries())
+    .map(([name, value]) => `${name}=${value}`)
+    .join('; ');
+}
+
+async function collectNaverCookieHeader(ses: Session): Promise<string> {
+  const batches = await Promise.all([
+    ses.cookies.get({ domain: '.naver.com' }),
+    ...NAVER_COOKIE_URLS.map((url) => ses.cookies.get({ url })),
+  ]);
+  return mergeCookies(batches.flat());
+}
+
+async function waitForNaverCookieHeader(ses: Session): Promise<string> {
+  const deadline = Date.now() + COOKIE_READY_MAX_WAIT_MS;
+  let latest = '';
+
+  while (Date.now() < deadline) {
+    latest = await collectNaverCookieHeader(ses);
+    if (hasRequiredNaverCookies(latest)) return latest;
+    await new Promise((resolve) => setTimeout(resolve, COOKIE_POLL_MS));
+  }
+
+  return latest;
+}
+
+async function warmFinLandSession(win: BrowserWindow): Promise<void> {
+  if (win.isDestroyed()) return;
+  try {
+    await win.loadURL(FIN_LAND_WARMUP_URL);
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  } catch {
+    // Cookie polling below is the source of truth for login readiness.
+  }
+}
 
 export async function openNaverLoginWindow(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -39,6 +93,7 @@ export async function openNaverLoginWindow(): Promise<void> {
     const ses = session.fromPartition(PARTITION);
     let loginDetected = false;
     let visitedLoginPage = false;
+    setBearer('');
     // bearer 캡처 단계에서 창이 닫혔을 때 정리할 수 있도록 외부에서 참조 가능하게 저장
     let finishCapture: (() => void) | null = null;
 
@@ -62,13 +117,18 @@ export async function openNaverLoginWindow(): Promise<void> {
       clearTimeout(maxTimer);
 
       // 쿠키 캡처
-      const cookies = await ses.cookies.get({ domain: '.naver.com' });
-      const cookieStr = cookies.map((c) => `${c.name}=${c.value}`).join('; ');
+      await warmFinLandSession(win);
+      const cookieStr = await waitForNaverCookieHeader(ses);
+      if (!hasRequiredNaverCookies(cookieStr)) {
+        if (!win.isDestroyed()) win.close();
+        reject(new Error('네이버 로그인 쿠키가 아직 완성되지 않았습니다. 로그인 창에서 네이버 부동산 페이지가 열린 뒤 다시 시도해 주세요.'));
+        return;
+      }
       setCookie(cookieStr);
 
       // new.land로 이동해 Bearer 토큰 유발 (onBeforeSendHeaders 인터셉터가 캡처)
       if (!win.isDestroyed()) {
-        win.loadURL('https://new.land.naver.com/houses');
+        win.loadURL(NEW_LAND_WARMUP_URL);
       }
 
       // Bearer가 실제로 캡처될 때까지 폴링 — 고정 타임아웃 2초 대신 최대 10초 대기
@@ -80,8 +140,14 @@ export async function openNaverLoginWindow(): Promise<void> {
         clearInterval(bearerPoll);
         clearTimeout(bearerTimeout);
         finishCapture = null;
-        if (!win.isDestroyed()) win.close();
-        resolve();
+        collectNaverCookieHeader(ses)
+          .then((latestCookieStr) => {
+            if (hasRequiredNaverCookies(latestCookieStr)) setCookie(latestCookieStr);
+          })
+          .finally(() => {
+            if (!win.isDestroyed()) win.close();
+            resolve();
+          });
       };
 
       finishCapture = finish; // closed 핸들러에서도 호출할 수 있도록 저장

@@ -117,7 +117,7 @@ export function createServer(): express.Application {
 
   // 에이전트 실행 여부 감지
   app.get('/health', (_req: Request, res: Response) => {
-    res.json({ status: 'ok', version: '1.0.0', port: AGENT_PORT });
+    res.json({ status: 'ok', version: '1.0.4', port: AGENT_PORT });
   });
 
   // 쿠키 로그인 상태 확인
@@ -147,10 +147,14 @@ export function createServer(): express.Application {
           signal: AbortSignal.timeout(6000),
         },
       );
-      if (r.status === 401) {
-        res.json({ valid: false, reason: 'cookie-expired' });
-      } else {
+      if (r.ok) {
         res.json({ valid: true });
+      } else if (r.status === 401 || r.status === 403) {
+        res.json({ valid: false, reason: 'cookie-expired' });
+      } else if (r.status === 429) {
+        res.json({ valid: false, reason: 'cookie-rejected-or-rate-limited' });
+      } else {
+        res.json({ valid: false, reason: `naver-status-${r.status}` });
       }
     } catch {
       // 네트워크 오류 등 — 오탐 방지를 위해 유효로 처리

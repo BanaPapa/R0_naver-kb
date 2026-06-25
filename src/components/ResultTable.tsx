@@ -105,6 +105,41 @@ function priceSortValue(p: Property): number {
   return 0;
 }
 
+function stablePropertyIdentity(p: Property): string {
+  const primary = p.articleNumber?.trim();
+  if (primary) return primary;
+  return stableVisualIdentity(p);
+}
+
+function stableVisualIdentity(p: Property): string {
+  return [
+    p.groupId ?? '',
+    p.complexNumber,
+    p.complexName,
+    p.dongName,
+    p.floorInfo,
+    p.direction,
+    p.supplySpaceName,
+    p.supplySpace,
+    p.exclusiveSpace,
+    p.dealPrice,
+    p.warrantyPrice,
+    p.rentPrice,
+    p.premiumPrice,
+    p.optionPrice,
+    p.brokerageName,
+    p.articleFeature,
+  ].join('|');
+}
+
+function stableRepresentativeIdentity(p: Property): string {
+  return p.groupId?.trim() || stablePropertyIdentity(p);
+}
+
+function stableChildIdentity(p: Property): string {
+  return stableVisualIdentity(p);
+}
+
 function getSortValue(p: Property, key: SortKey, realEstateType: string): number | string {
   if (key === 'dealPrice')     return priceSortValue(p);
   if (key === 'pyeongPrice')   return pyeongUnitPriceWon(p, realEstateType);
@@ -478,6 +513,10 @@ export function ResultTable({ searchKey, status, properties, realEstateType, are
       setSortKey(key);
       setSortDir('asc');
     }
+    setIsDupHidden(true);
+    setExpandedGroups(new Set());
+    setSelectedRow(null);
+    setSelectedGroupId(null);
     setPage(0);
     tableWrapperRef.current?.scrollTo({ top: 0 });
   };
@@ -506,7 +545,17 @@ export function ResultTable({ searchKey, status, properties, realEstateType, are
   } = useMemo(() => {
     // 1. 모든 필터는 '대표(rep)' 에만 적용한다. 중복(children)은 독립적으로
     //    필터/정렬하지 않고, 통과한 대표를 따라다니는 '접힌 폴더'로 취급한다.
-    let reps = properties.filter((p) => !p.isDuplicate);
+    const uniqueReps: Property[] = [];
+    const seenReps = new Set<string>();
+    for (const p of properties) {
+      if (p.isDuplicate) continue;
+      const key = stableRepresentativeIdentity(p);
+      if (seenReps.has(key)) continue;
+      seenReps.add(key);
+      uniqueReps.push(p);
+    }
+
+    let reps = uniqueReps;
     if (complexFilter)    reps = reps.filter((p) => p.complexName === complexFilter);
     if (tradeTypeFilter)  reps = reps.filter((p) => p.tradeType   === tradeTypeFilter);
 
@@ -551,9 +600,16 @@ export function ResultTable({ searchKey, status, properties, realEstateType, are
     //    자식은 필터 대상이 아니므로, 대표가 통과하면 그 자식은 전부 따라온다.
     const passedGroupIds = new Set(reps.map((p) => p.groupId).filter(Boolean) as string[]);
     const childMap = new Map<string, Property[]>();
+    const seenChildrenByGroup = new Map<string, Set<string>>();
     let dupCnt = 0;
     for (const p of properties) {
       if (p.isDuplicate && p.groupId && passedGroupIds.has(p.groupId)) {
+        const childKey = stableChildIdentity(p);
+        const seenChildren = seenChildrenByGroup.get(p.groupId) ?? new Set<string>();
+        if (seenChildren.has(childKey)) continue;
+        seenChildren.add(childKey);
+        seenChildrenByGroup.set(p.groupId, seenChildren);
+
         const arr = childMap.get(p.groupId) ?? [];
         arr.push(p);
         childMap.set(p.groupId, arr);
@@ -603,20 +659,32 @@ export function ResultTable({ searchKey, status, properties, realEstateType, are
 
     // 5. Display rows with expansion state
     const isGroupExpanded = (gid: string) =>
-      isDupHidden ? expandedGroups.has(gid) : !expandedGroups.has(gid);
+      !isDupHidden || expandedGroups.has(gid);
 
     // 부모(rep)만 정렬 기준으로 순서 결정.
     // 자식은 정렬 대상이 아니며, 부모 바로 아래에 원래 순서 그대로 붙는다.
     // 부모가 어디로 이동하든 자식은 항상 해당 부모 바로 아래에만 위치한다.
-    const displayRows: Property[] = sortedReps.flatMap((rep) => {
+    const displayGroups: Property[][] = sortedReps.map((rep) => {
+      const children = rep.groupId ? (childMap.get(rep.groupId) ?? []) : [];
       const expanded = rep.groupId ? isGroupExpanded(rep.groupId) : false;
-      return expanded ? [rep, ...(childMap.get(rep.groupId!) ?? [])] : [rep];
+      return expanded ? [rep, ...children] : [rep];
     });
 
     // 6. Paginate
-    const total = Math.ceil(displayRows.length / PAGE_SIZE);
+    const pages: Property[][] = [];
+    let curPage: Property[] = [];
+    for (const group of displayGroups) {
+      if (curPage.length > 0 && curPage.length + group.length > PAGE_SIZE) {
+        pages.push(curPage);
+        curPage = [];
+      }
+      curPage.push(...group);
+    }
+    if (curPage.length > 0) pages.push(curPage);
+
+    const total = pages.length;
     const safe  = Math.min(page, Math.max(0, total - 1));
-    const pag   = displayRows.slice(safe * PAGE_SIZE, (safe + 1) * PAGE_SIZE);
+    const pag   = pages[safe] ?? [];
 
     return {
       filteredReps: sortedReps,
@@ -965,7 +1033,18 @@ export function ResultTable({ searchKey, status, properties, realEstateType, are
               </tr>
             ) : (
               paginated.map((p, idx) => {
-                const rowKey = p._uid ? String(p._uid) : (p.articleNumber || String(idx));
+                const rowKey = p._uid
+                  ? String(p._uid)
+                  : [
+                      p.isDuplicate ? 'dup' : 'rep',
+                      p.groupId ?? '',
+                      p.articleNumber ?? '',
+                      p.brokerageName ?? '',
+                      p.articleFeature ?? '',
+                      p.dongName ?? '',
+                      p.floorInfo ?? '',
+                      idx,
+                    ].join('|');
                 const isSelected = selectedRow === rowKey;
                 const isDup = !!p.isDuplicate;
 
@@ -978,7 +1057,7 @@ export function ResultTable({ searchKey, status, properties, realEstateType, are
                   : (!isDup && p.realtorCount > 1 ? p.realtorCount - 1 : 0);
                 const isExpandable = !isDup && !!p.groupId && actualChildCount > 0;
                 const isExpanded = isExpandable && (
-                  isDupHidden ? expandedGroups.has(p.groupId!) : !expandedGroups.has(p.groupId!)
+                  !isDupHidden || expandedGroups.has(p.groupId!)
                 );
                 // 대표 행을 선택하면 중복 하위 행도 같이 강조
                 const isInSelectedGroup = !!(isDup && p.groupId && selectedGroupId === p.groupId);

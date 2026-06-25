@@ -206,6 +206,10 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus, isAdmin,
   }, [state.status, state.errorMessage, state.meta, isAdmin]);
 
   const handleStart = (config: CrawlerConfig) => {
+    if (connectionValid === false) {
+      setNotice('네이버 로그인 쿠키가 유효하지 않습니다. 다시 네이버 로그인 후 검색해 주세요.');
+      return;
+    }
     setSearchKey((k) => k + 1);
     setCrawlModalOpen(true); // 검색 시작과 동시에 진행률 모달 표시
     start(config);

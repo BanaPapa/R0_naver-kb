@@ -16,7 +16,7 @@ function loadTrayIcon() {
 function buildContextMenu(): Menu {
   const cookieOk = hasCookies();
   return Menu.buildFromTemplate([
-    { label: 'Estate-OS Agent v1.0.0', enabled: false },
+    { label: 'Estate-OS Agent v1.0.4', enabled: false },
     { label: `포트: ${AGENT_PORT}`, enabled: false },
     {
       label: cookieOk ? '네이버: 로그인됨 ✓' : '네이버: 로그인 필요',

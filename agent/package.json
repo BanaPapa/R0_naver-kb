@@ -1,6 +1,6 @@
 {
   "name": "estate-os-agent",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "Estate-OS 로컬 에이전트 — 네이버 부동산 프록시 (주거 IP 우회)",
   "repository": "https://github.com/BanaPapa/Estate-OS",
   "main": "dist/main.js",
