@@ -421,18 +421,18 @@ body {
 .cp-presale-ic {
   flex: none;
   color: var(--cp-blue);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   margin-top: 1px;
 }
 .cp-presale-title {
-  font-size: 13.5px;
+  font-size: 15.5px;
   font-weight: 700;
   color: var(--fg);
   margin-bottom: 1px;
 }
 .cp-presale-msg {
-  font-size: 12.5px;
+  font-size: 14.5px;
   color: var(--fg-2);
   line-height: 1.55;
 }
