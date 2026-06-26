@@ -2181,15 +2181,11 @@ input[type='range'].space-range:disabled {
   outline: none;
 }
 [data-admin-role-tip] {
-  position: relative;
-  overflow: visible;
+  cursor: help;
 }
-[data-admin-role-tip]::after {
-  content: attr(data-admin-role-tip);
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 6px);
-  z-index: 9999;
+.admin-role-tooltip {
+  position: fixed;
+  z-index: 2147483647;
   width: max-content;
   max-width: min(240px, calc(100vw - 32px));
   padding: 6px 10px;
@@ -2206,20 +2202,14 @@ input[type='range'].space-range:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
   text-shadow: none;
-  opacity: 0;
-  transform: translate(-50%, 2px);
+  transform: translate(-50%, -100%);
   pointer-events: none;
-  transition: opacity 0.12s var(--ease), transform 0.12s var(--ease);
 }
-:root[data-theme='light'] [data-admin-role-tip]::after {
+:root[data-theme='light'] .admin-role-tooltip {
   background: #fff7d6;
   color: #3f3f46;
   border-color: rgba(161, 98, 7, 0.18);
   box-shadow: 0 10px 24px -16px rgba(63, 63, 70, 0.48);
-}
-[data-admin-role-tip]:hover::after {
-  opacity: 1;
-  transform: translate(-50%, 0);
 }
 
 /* ============================================================
