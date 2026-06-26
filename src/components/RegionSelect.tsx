@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { RegionItem, RegionSelection } from '../types';
 import { getRegions } from '../services/kbland';
+import { ControlSection, ControlSelect } from './control-panel';
 
 interface RegionSelectProps {
   value: RegionSelection;
@@ -63,57 +64,47 @@ export function RegionSelect({ value, onChange, disabled }: RegionSelectProps) {
   };
 
   return (
-    <section className="ctrl-section region-select">
-      <h2 className="ctrl-section-title form-label">지역 선택</h2>
+    <ControlSection title="지역 선택" className="region-select">
       <div className="region-select-row">
-        <div className="select-wrapper">
-          <select
-            className="form-select"
-            value={value.large?.code ?? ''}
-            onChange={handleLargeChange}
-            disabled={disabled || loadingLarge}
-          >
-            <option value="">{loadingLarge ? '로딩 중...' : '시/도 선택'}</option>
-            {largeList.map((r) => (
-              <option key={r.code} value={r.code}>
-                {r.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <ControlSelect
+          value={value.large?.code ?? ''}
+          onChange={handleLargeChange}
+          disabled={disabled || loadingLarge}
+        >
+          <option value="">{loadingLarge ? '로딩 중...' : '시/도 선택'}</option>
+          {largeList.map((r) => (
+            <option key={r.code} value={r.code}>
+              {r.name}
+            </option>
+          ))}
+        </ControlSelect>
 
-        <div className="select-wrapper">
-          <select
-            className="form-select"
-            value={value.mid?.code ?? ''}
-            onChange={handleMidChange}
-            disabled={disabled || !value.large || loadingMid}
-          >
-            <option value="">{loadingMid ? '로딩 중...' : '시/군/구 선택'}</option>
-            {midList.map((r) => (
-              <option key={r.code} value={r.code}>
-                {r.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <ControlSelect
+          value={value.mid?.code ?? ''}
+          onChange={handleMidChange}
+          disabled={disabled || !value.large || loadingMid}
+        >
+          <option value="">{loadingMid ? '로딩 중...' : '시/군/구 선택'}</option>
+          {midList.map((r) => (
+            <option key={r.code} value={r.code}>
+              {r.name}
+            </option>
+          ))}
+        </ControlSelect>
 
-        <div className="select-wrapper">
-          <select
-            className="form-select"
-            value={value.small?.code ?? ''}
-            onChange={handleSmallChange}
-            disabled={disabled || !value.mid || loadingSmall}
-          >
-            <option value="">{loadingSmall ? '로딩 중...' : '읍/면/동 선택'}</option>
-            {smallList.map((r) => (
-              <option key={r.code} value={r.code}>
-                {r.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <ControlSelect
+          value={value.small?.code ?? ''}
+          onChange={handleSmallChange}
+          disabled={disabled || !value.mid || loadingSmall}
+        >
+          <option value="">{loadingSmall ? '로딩 중...' : '읍/면/동 선택'}</option>
+          {smallList.map((r) => (
+            <option key={r.code} value={r.code}>
+              {r.name}
+            </option>
+          ))}
+        </ControlSelect>
       </div>
-    </section>
+    </ControlSection>
   );
 }

@@ -7,6 +7,7 @@ import { getRegions, peekRegions, prefetchRegions, type RegionItem } from '../..
 import { buildMidOptions, type MidOption } from '../../shared/lib/kb-mid-options';
 import { InfoTip } from '../../shared/ui/InfoTip';
 import { PeriodSlider } from './PeriodSlider';
+import { ControlButton, ControlField, ControlSection, ControlSelect } from '../../../components/control-panel';
 
 // 이동평균 기간 선택지(주)
 const MA_OPTIONS = [4, 13, 26, 52];
@@ -158,50 +159,45 @@ export const RegionSelector: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-white">
       {/* 기간 선택 */}
-      <section className="ctrl-section">
-        <h2 className="ctrl-section-title">표시기간</h2>
+      <ControlSection title="표시기간">
         <div className="mt-4">
           <PeriodSlider />
         </div>
-      </section>
+      </ControlSection>
 
       <div className="border-t border-gray-100" />
 
-      <section className="ctrl-section min-h-[8.5rem]" style={{ paddingTop: 'var(--ctrl-section-gap)' }}>
+      <ControlSection title={!isTrade ? '지수 기준일' : '거래지표 보기'} className="min-h-[8.5rem]" style={{ paddingTop: 'var(--ctrl-section-gap)' }} headerRight={
+        !isTrade ? (
+          <button
+            onClick={() => setBaseLineOn(!baseLineOn)}
+            title="각 그래프에 기준일 세로선 표시 On/Off"
+            className={`ctrl-item flex-none whitespace-nowrap rounded border px-1.5 py-0.5 text-[11px] font-semibold transition-colors ${
+              baseLineOn ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-gray-50 border-gray-200 text-gray-400'
+            }`}
+          >
+            세로선 {baseLineOn ? 'ON' : 'OFF'}
+          </button>
+        ) : (
+          <InfoTip text={TRADE_VIEW_HELP} />
+        )
+      }>
         {!isTrade && (
           <>
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="ctrl-section-title">지수 기준일</h2>
-              <button
-                onClick={() => setBaseLineOn(!baseLineOn)}
-                title="각 그래프에 기준일 세로선 표시 On/Off"
-                className={`ctrl-item flex-none whitespace-nowrap rounded border px-1.5 py-0.5 text-[11px] font-semibold transition-colors ${
-                  baseLineOn ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-gray-50 border-gray-200 text-gray-400'
-                }`}
-              >
-                세로선 {baseLineOn ? 'ON' : 'OFF'}
-              </button>
-            </div>
             <p className="mb-2 text-xs text-gray-400">이 주 = 100.0</p>
-            <select
+            <ControlSelect
               value={baseDate}
               onChange={e => setBaseDate(e.target.value)}
-              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             >
               {allDates.slice().reverse().map(d => (
                 <option key={d} value={d}>{d}</option>
               ))}
-            </select>
+            </ControlSelect>
           </>
         )}
 
         {isTrade && (
-          <>
-            <div className="mb-3 flex items-center gap-1">
-              <h2 className="ctrl-section-title">거래지표 보기</h2>
-              <InfoTip text={TRADE_VIEW_HELP} />
-            </div>
-            <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setTradeMaOn(!tradeMaOn)}
                 className={`ctrl-item flex-none whitespace-nowrap rounded-md border px-2 py-1 text-xs font-semibold transition-colors ${
@@ -223,38 +219,30 @@ export const RegionSelector: React.FC = () => {
               <button
                 onClick={resetTradeYRanges}
                 title="모든 그래프 Y축을 기본(0~200)으로 초기화"
-                className="flex-none whitespace-nowrap rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-500 transition-colors hover:border-blue-300 hover:bg-gray-50 hover:text-blue-600"
+                className="ctrl-secondary-action flex-none whitespace-nowrap px-2 py-1"
               >
                 Y축 초기화
               </button>
-            </div>
-          </>
+          </div>
         )}
-      </section>
+      </ControlSection>
 
       <div className="border-t border-gray-100" />
 
       {/* Cascading region selector */}
-      <section className="ctrl-section flex flex-col gap-3 border-b border-gray-100" style={{ paddingTop: 'var(--ctrl-section-gap)' }}>
-        <div className="flex items-center justify-between">
-          <h2 className="ctrl-section-title">지역 선택</h2>
-          {selectedRegions.length > 0 && (
-            <button
-              onClick={clearRegions}
-              className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-500 hover:border-gray-400 hover:text-gray-400 transition-colors"
-            >
-              전체 해제
-            </button>
-          )}
-        </div>
+      <ControlSection title="지역 선택" className="gap-3 border-b border-gray-100" style={{ paddingTop: 'var(--ctrl-section-gap)' }} headerRight={
+        selectedRegions.length > 0 && (
+          <ControlButton onClick={clearRegions} className="px-2 py-1">
+            전체 해제
+          </ControlButton>
+        )
+      }>
 
         {/* 대지역 */}
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">대지역 (시/도 · 집계)</label>
-          <select
+        <ControlField label="대지역 (시/도 · 집계)">
+          <ControlSelect
             value={largeValue}
             onChange={e => setLargeValue(e.target.value)}
-            className="w-full text-sm border border-gray-200 rounded-md px-2 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">선택</option>
             <optgroup label="집계 지역">
@@ -272,17 +260,15 @@ export const RegionSelector: React.FC = () => {
                 </option>
               ))}
             </optgroup>
-          </select>
-        </div>
+          </ControlSelect>
+        </ControlField>
 
         {/* 중지역 */}
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">중지역 (시/군/구)</label>
-          <select
+        <ControlField label="중지역 (시/군/구)">
+          <ControlSelect
             value={midKey}
             disabled={midDisabled}
             onChange={e => setMidKey(e.target.value)}
-            className="w-full text-sm border border-gray-200 rounded-md px-2 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-300"
           >
             <option value="">
               {isTrade
@@ -301,23 +287,22 @@ export const RegionSelector: React.FC = () => {
                 {m.available ? '' : ' (데이터 없음)'}
               </option>
             ))}
-          </select>
-        </div>
+          </ControlSelect>
+        </ControlField>
 
         {/* 소지역 — 주간은 항상 비활성 */}
-        <div>
-          <label className="block text-xs text-gray-300 mb-1">소지역 (읍/면/동)</label>
-          <select
+        <ControlField label="소지역 (읍/면/동)">
+          <ControlSelect
             disabled
             value=""
-            className="w-full text-sm border border-gray-200 rounded-md px-2 py-2 bg-gray-50 text-gray-300"
           >
             <option value="">주간 시계열 미지원</option>
-          </select>
-        </div>
+          </ControlSelect>
+        </ControlField>
 
         {/* 추가 버튼 */}
-        <button
+        <ControlButton
+          variant="primary"
           onClick={handleAdd}
           disabled={!canAdd}
           title={
@@ -329,7 +314,7 @@ export const RegionSelector: React.FC = () => {
               ? '이미 추가된 지역입니다'
               : undefined
           }
-          className="kb-accent-button w-full py-3 disabled:cursor-not-allowed text-base font-semibold transition-colors"
+          className="kb-accent-button w-full py-3"
         >
           {target
             ? alreadyAdded
@@ -338,8 +323,8 @@ export const RegionSelector: React.FC = () => {
               ? '데이터 없음'
               : `추가: ${target.display}`
             : '추가'}
-        </button>
-      </section>
+        </ControlButton>
+      </ControlSection>
 
       {/* 비교함 */}
       <div className="flex-1 overflow-y-auto py-4">

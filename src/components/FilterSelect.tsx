@@ -1,6 +1,7 @@
 import React from 'react';
 import { REAL_ESTATE_TYPES, TRADE_TYPES, SPACE_OPTIONS, isExclusiveSpaceType } from '../types';
 import { SpaceRangeSlider } from './SpaceRangeSlider';
+import { ControlSection, ControlSelect } from './control-panel';
 
 export type AreaMode = 'preset' | 'manual';
 
@@ -53,45 +54,36 @@ export function FilterSelect({
 
   return (
     <div className="filter-select">
-      <section className="ctrl-section form-group">
-        <h2 className="ctrl-section-title form-label">상품종류</h2>
-        <div className="select-wrapper">
-          <select
-            className="form-select"
-            value={realEstateType}
-            onChange={(e) => onRealEstateTypeChange(e.target.value)}
-            disabled={disabled}
-          >
-            {REAL_ESTATE_TYPES.map((opt) => (
-              <option key={opt.value} value={opt.value} disabled={opt.disabled}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </section>
+      <ControlSection title="상품종류" className="form-group">
+        <ControlSelect
+          value={realEstateType}
+          onChange={(e) => onRealEstateTypeChange(e.target.value)}
+          disabled={disabled}
+        >
+          {REAL_ESTATE_TYPES.map((opt) => (
+            <option key={opt.value} value={opt.value} disabled={opt.disabled}>
+              {opt.label}
+            </option>
+          ))}
+        </ControlSelect>
+      </ControlSection>
 
-      <section className="ctrl-section form-group">
-        <h2 className="ctrl-section-title form-label">거래방식</h2>
-        <div className="select-wrapper">
-          <select
-            className="form-select"
-            value={tradeType}
-            onChange={(e) => onTradeTypeChange(e.target.value)}
-            disabled={disabled}
-          >
-            {TRADE_TYPES.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </div>
-      </section>
+      <ControlSection title="거래방식" className="form-group">
+        <ControlSelect
+          value={tradeType}
+          onChange={(e) => onTradeTypeChange(e.target.value)}
+          disabled={disabled}
+        >
+          {TRADE_TYPES.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </ControlSelect>
+      </ControlSection>
 
       {!hideAreaFilter && (isExclusive ? (
         // 오피스텔/사무실/지산: 전용면적 레인지 슬라이더
-        <section className="ctrl-section form-group">
+        <ControlSection title="면적 (전용면적 기준)" className="form-group">
           <SpaceRangeSlider
-            label="면적 (전용면적 기준)"
             min={exclusivePyeongMin}
             max={exclusivePyeongMax}
             unit={spaceUnit}
@@ -100,45 +92,39 @@ export function FilterSelect({
             onUnitChange={onSpaceUnitChange}
             disabled={disabled}
           />
-        </section>
+        </ControlSection>
       ) : (
         // 아파트 등: 타입(고정값) 또는 직접설정(공급면적 레인지) 선택
-        <section className="ctrl-section form-group">
-          <div className="space-label-row">
-            <h2 className="ctrl-section-title form-label" style={{ marginBottom: 0 }}>면적 (공급면적 기준)</h2>
-            <div className="space-unit-toggle">
-              <button
-                className={`space-unit-btn ${areaMode === 'preset' ? 'active' : ''}`}
-                onClick={() => onAreaModeChange('preset')}
-                disabled={disabled}
-                type="button"
-              >
-                타입
-              </button>
-              <button
-                className={`space-unit-btn ${areaMode === 'manual' ? 'active' : ''}`}
-                onClick={() => onAreaModeChange('manual')}
-                disabled={disabled}
-                type="button"
-              >
-                직접설정
-              </button>
-            </div>
+        <ControlSection title="면적 (공급면적 기준)" className="form-group" headerRight={(
+          <div className="space-unit-toggle">
+            <button
+              className={`space-unit-btn ${areaMode === 'preset' ? 'active' : ''}`}
+              onClick={() => onAreaModeChange('preset')}
+              disabled={disabled}
+              type="button"
+            >
+              타입
+            </button>
+            <button
+              className={`space-unit-btn ${areaMode === 'manual' ? 'active' : ''}`}
+              onClick={() => onAreaModeChange('manual')}
+              disabled={disabled}
+              type="button"
+            >
+              직접설정
+            </button>
           </div>
-
+        )}>
           {areaMode === 'preset' ? (
-            <div className="select-wrapper">
-              <select
-                className="form-select"
-                value={spaceIndex}
-                onChange={(e) => onSpaceIndexChange(Number(e.target.value))}
-                disabled={disabled}
-              >
-                {SPACE_OPTIONS.map((opt, i) => (
-                  <option key={i} value={i}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
+            <ControlSelect
+              value={spaceIndex}
+              onChange={(e) => onSpaceIndexChange(Number(e.target.value))}
+              disabled={disabled}
+            >
+              {SPACE_OPTIONS.map((opt, i) => (
+                <option key={i} value={i}>{opt.label}</option>
+              ))}
+            </ControlSelect>
           ) : (
             <SpaceRangeSlider
               min={supplyPyeongMin}
@@ -151,7 +137,7 @@ export function FilterSelect({
               disabled={disabled}
             />
           )}
-        </section>
+        </ControlSection>
       ))}
     </div>
   );
