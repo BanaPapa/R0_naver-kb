@@ -3,8 +3,6 @@ import { LineChart, Brush, ResponsiveContainer } from 'recharts';
 import { useAppStore } from '../../shared/lib/store';
 import { useMonthlyStore } from '../../shared/lib/monthly-store';
 import {
-  formatQuarter,
-  getQuarterTicks,
   useBrushRange,
   BrushTraveller,
 } from '../chart-dashboard/chart-primitives';
@@ -20,7 +18,7 @@ interface PeriodSliderProps {
   dates?: string[];
 }
 
-// 사이드바용 기간 선택기: 최근 1/3/5/10년 프리셋 + 얇은 드래그 막대 + 분기 눈금.
+// 사이드바용 기간 선택기: 최근 1/3/5/10년 프리셋 + 얇은 드래그 막대.
 // 주간은 활성 탭(시세/거래)에 맞는 날짜축을, 월간은 props로 주입된 날짜축을 사용한다.
 export const PeriodSlider: React.FC<PeriodSliderProps> = props => {
   const weekly = useAppStore();
@@ -32,8 +30,6 @@ export const PeriodSlider: React.FC<PeriodSliderProps> = props => {
   const dates = props.dates ?? (weeklyTab === 'trade' ? weekly.allTradeDates : weekly.allDates);
 
   const data = useMemo(() => dates.map(d => ({ date: d })), [dates]);
-  const quarterTicks = useMemo(() => getQuarterTicks(dates, 6), [dates]);
-  const lastIdx = Math.max(1, dates.length - 1);
 
   const { startIndex, endIndex, handleBrushChange } = useBrushRange(
     dates,
@@ -64,10 +60,6 @@ export const PeriodSlider: React.FC<PeriodSliderProps> = props => {
 
   return (
     <div>
-      <div className="mb-2 flex items-center justify-end">
-        <span className="font-mono text-[11px] text-blue-600">{fromDate} ~ {toDate}</span>
-      </div>
-
       {/* 최근 N년 프리셋 + 전체 기간 */}
       <div className="mb-1.5 flex gap-1">
         {PRESETS.map(y => (
@@ -107,27 +99,8 @@ export const PeriodSlider: React.FC<PeriodSliderProps> = props => {
         </ResponsiveContainer>
       </div>
 
-      {/* 분기 눈금 */}
-      <div className="relative mt-0.5 h-4">
-        {quarterTicks.map(td => {
-          const idx = dates.indexOf(td);
-          if (idx < 0) return null;
-          const left = (idx / lastIdx) * 100;
-          const align =
-            idx === 0 ? 'translate-x-0' : idx === dates.length - 1 ? '-translate-x-full' : '-translate-x-1/2';
-          return (
-            <div
-              key={td}
-              className={`absolute top-0 flex flex-col items-center ${align}`}
-              style={{ left: `${left}%` }}
-            >
-              <span className="h-1 w-px bg-gray-300" />
-              <span className="mt-0.5 whitespace-nowrap text-[9px] leading-none text-gray-400">
-                {formatQuarter(td)}
-              </span>
-            </div>
-          );
-        })}
+      <div className="mt-0.5 flex h-4 items-start justify-end">
+        <span className="font-mono text-[11px] leading-none text-blue-600">{fromDate} ~ {toDate}</span>
       </div>
     </div>
   );

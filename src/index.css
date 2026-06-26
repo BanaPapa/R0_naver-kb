@@ -54,6 +54,7 @@
   --ctrl-title-weight: 700;
   --ctrl-title-color: var(--fg);
   --ctrl-title-line: calc(var(--ctrl-title-size) * 1.428571);
+  --ctrl-title-content-gap: calc(var(--ctrl-title-line) * 0.5);
   --ctrl-section-gap: calc(var(--ctrl-title-line) * 3);
   --ctrl-item-size: 16px;
   --ctrl-item-font: var(--font);
@@ -1708,11 +1709,11 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: var(--ctrl-title-size);
+  margin-bottom: var(--ctrl-title-content-gap);
 }
 .ctrl-section-title {
   display: block;
-  margin: 0 0 var(--ctrl-title-size);
+  margin: 0 0 var(--ctrl-title-content-gap);
   padding: 0;
   font-family: var(--ctrl-title-font);
   font-size: var(--ctrl-title-size);
@@ -1746,7 +1747,7 @@ body {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ctrl-title-color);
-  margin-bottom: var(--ctrl-title-size);
+  margin-bottom: var(--ctrl-title-content-gap);
 }
 .select-wrapper {
   position: relative;

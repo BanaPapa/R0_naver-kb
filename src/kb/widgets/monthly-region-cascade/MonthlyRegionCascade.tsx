@@ -180,7 +180,7 @@ export const MonthlyRegionCascade: React.FC = () => {
     <div className="h-full flex flex-col bg-white">
       {/* 기간 선택 */}
       <ControlSection title="표시기간">
-        <div className="mt-4">
+        <div>
           <PeriodSlider
             dates={allDates}
             fromDate={fromDate}
@@ -210,7 +210,7 @@ export const MonthlyRegionCascade: React.FC = () => {
       }>
         {isPrice && (
           <>
-            <p className="mb-2 text-xs text-gray-400">이 달 = 100.0</p>
+            <p className="mb-1 text-xs text-gray-400">이 달 = 100.0</p>
             <ControlSelect
               value={baseDate}
               onChange={e => setBaseDate(e.target.value)}
