@@ -79,7 +79,7 @@ export function SlotModal({ mode, onClose }: SlotModalProps) {
       onMouseDown={onClose}
     >
       <div
-        style={{ width: '50vw', height: '60vh' }}
+        style={{ width: 'min(90vw, 1240px)', height: 'min(82vh, 760px)' }}
         className="relative flex min-w-[420px] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl"
         onMouseDown={e => e.stopPropagation()}
       >
@@ -107,7 +107,7 @@ export function SlotModal({ mode, onClose }: SlotModalProps) {
                 onMouseEnter={e => entry && setHover({ index: i, x: e.clientX, y: e.clientY })}
                 onMouseMove={e => entry && setHover({ index: i, x: e.clientX, y: e.clientY })}
                 onMouseLeave={() => setHover(h => (h?.index === i ? null : h))}
-                className="flex min-h-[3.25rem] flex-1 items-center gap-3 rounded-lg border border-gray-100 px-4 hover:bg-gray-50"
+                className="flex min-h-[3.55rem] items-center gap-3 rounded-lg border border-gray-100 px-4 hover:bg-gray-50"
               >
                 <span className="w-7 shrink-0 text-center text-base font-bold text-gray-400">
                   {i + 1}
