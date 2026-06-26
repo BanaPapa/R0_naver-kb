@@ -47,7 +47,7 @@ export function SpaceRangeSlider({
     <>
       <div className="space-label-row">
         {label
-          ? <label className="form-label" style={{ marginBottom: 0 }}>{label}</label>
+          ? <h2 className="ctrl-section-title form-label" style={{ marginBottom: 0 }}>{label}</h2>
           : <span />}
         <div className="space-unit-toggle">
           <button

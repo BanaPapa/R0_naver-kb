@@ -53,8 +53,8 @@ export function FilterSelect({
 
   return (
     <div className="filter-select">
-      <div className="form-group">
-        <label className="form-label">상품종류</label>
+      <section className="ctrl-section form-group">
+        <h2 className="ctrl-section-title form-label">상품종류</h2>
         <div className="select-wrapper">
           <select
             className="form-select"
@@ -69,10 +69,10 @@ export function FilterSelect({
             ))}
           </select>
         </div>
-      </div>
+      </section>
 
-      <div className="form-group">
-        <label className="form-label">거래방식</label>
+      <section className="ctrl-section form-group">
+        <h2 className="ctrl-section-title form-label">거래방식</h2>
         <div className="select-wrapper">
           <select
             className="form-select"
@@ -85,11 +85,11 @@ export function FilterSelect({
             ))}
           </select>
         </div>
-      </div>
+      </section>
 
       {!hideAreaFilter && (isExclusive ? (
         // 오피스텔/사무실/지산: 전용면적 레인지 슬라이더
-        <div className="form-group">
+        <section className="ctrl-section form-group">
           <SpaceRangeSlider
             label="면적 (전용면적 기준)"
             min={exclusivePyeongMin}
@@ -100,12 +100,12 @@ export function FilterSelect({
             onUnitChange={onSpaceUnitChange}
             disabled={disabled}
           />
-        </div>
+        </section>
       ) : (
         // 아파트 등: 타입(고정값) 또는 직접설정(공급면적 레인지) 선택
-        <div className="form-group">
+        <section className="ctrl-section form-group">
           <div className="space-label-row">
-            <label className="form-label" style={{ marginBottom: 0 }}>면적 (공급면적 기준)</label>
+            <h2 className="ctrl-section-title form-label" style={{ marginBottom: 0 }}>면적 (공급면적 기준)</h2>
             <div className="space-unit-toggle">
               <button
                 className={`space-unit-btn ${areaMode === 'preset' ? 'active' : ''}`}
@@ -151,7 +151,7 @@ export function FilterSelect({
               disabled={disabled}
             />
           )}
-        </div>
+        </section>
       ))}
     </div>
   );

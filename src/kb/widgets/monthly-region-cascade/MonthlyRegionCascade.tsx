@@ -178,8 +178,8 @@ export const MonthlyRegionCascade: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-white">
       {/* 기간 선택 */}
-      <div className="p-4">
-        <h2 className="text-sm font-bold text-gray-800 tracking-wide">표시기간</h2>
+      <section className="ctrl-section p-4">
+        <h2 className="ctrl-section-title">표시기간</h2>
         <div className="mt-4">
           <PeriodSlider
             dates={allDates}
@@ -189,15 +189,15 @@ export const MonthlyRegionCascade: React.FC = () => {
             setToDate={setToDate}
           />
         </div>
-      </div>
+      </section>
 
       <div className="mx-4 border-t border-gray-100" />
 
-      <div className="min-h-[8.5rem] p-4 pt-6">
+      <section className="ctrl-section min-h-[8.5rem] p-4 pt-6">
         {isPrice && (
           <>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-bold text-gray-800 tracking-wide">지수 기준월</h2>
+              <h2 className="ctrl-section-title">지수 기준월</h2>
               <button
                 onClick={() => setBaseLineOn(!baseLineOn)}
                 title="각 그래프에 기준월 세로선 표시 On/Off"
@@ -224,7 +224,7 @@ export const MonthlyRegionCascade: React.FC = () => {
         {isTrade && (
           <>
             <div className="mb-3 flex items-center gap-1">
-              <h2 className="text-sm font-bold text-gray-800 tracking-wide">거래지표 보기</h2>
+              <h2 className="ctrl-section-title">거래지표 보기</h2>
               <InfoTip text={TRADE_VIEW_HELP} />
             </div>
             <div className="flex items-center gap-1.5">
@@ -256,14 +256,14 @@ export const MonthlyRegionCascade: React.FC = () => {
             </div>
           </>
         )}
-      </div>
+      </section>
 
       <div className="mx-4 border-t border-gray-100" />
 
       {/* Cascading region selector (주간 RegionSelector와 동일 구조) */}
-      <div className="p-4 pt-6 flex flex-col gap-3 border-b border-gray-100">
+      <section className="ctrl-section p-4 pt-6 flex flex-col gap-3 border-b border-gray-100">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-gray-800 tracking-wide">지역 선택</h2>
+          <h2 className="ctrl-section-title">지역 선택</h2>
           {selectedRegions.length > 0 && (
             <button
               onClick={clearRegions}
@@ -365,7 +365,7 @@ export const MonthlyRegionCascade: React.FC = () => {
               : `추가: ${target.display}`
             : '추가'}
         </button>
-      </div>
+      </section>
 
       {/* 비교함 */}
       <div className="flex-1 overflow-y-auto p-4">

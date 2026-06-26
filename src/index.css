@@ -1698,6 +1698,22 @@ body {
   display: flex;
   flex-direction: column;
 }
+.ctrl-section {
+  display: flex;
+  flex-direction: column;
+}
+.ctrl-section-title {
+  display: block;
+  margin: 0 0 var(--ctrl-title-size);
+  padding: 0;
+  font-family: var(--ctrl-title-font);
+  font-size: var(--ctrl-title-size);
+  font-weight: var(--ctrl-title-weight);
+  line-height: var(--ctrl-title-line);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ctrl-title-color);
+}
 .form-label {
   display: block;
   font-family: var(--ctrl-title-font);
@@ -2044,6 +2060,8 @@ input[type='range'].space-range:disabled {
    Future modules can opt in with ctrl-title/item/desc/button-1/button-2.
    ============================================================ */
 .ctrl-title,
+.ctrl-section-title,
+:where(.kb-scope .eos-ctrl) .ctrl-section-title,
 :where(.kb-scope .eos-ctrl) h2,
 :where(.kb-scope .eos-ctrl) h3 {
   font-family: var(--ctrl-title-font) !important;

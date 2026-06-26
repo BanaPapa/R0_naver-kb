@@ -63,8 +63,8 @@ export function RegionSelect({ value, onChange, disabled }: RegionSelectProps) {
   };
 
   return (
-    <div className="region-select">
-      <label className="form-label">지역 선택</label>
+    <section className="ctrl-section region-select">
+      <h2 className="ctrl-section-title form-label">지역 선택</h2>
       <div className="region-select-row">
         <div className="select-wrapper">
           <select
@@ -114,6 +114,6 @@ export function RegionSelect({ value, onChange, disabled }: RegionSelectProps) {
           </select>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
