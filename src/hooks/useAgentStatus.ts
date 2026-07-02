@@ -7,6 +7,7 @@ import {
   tryLaunchAgent,
   AgentStatus,
   CookieStatus,
+  ValidateReason,
 } from '../services/agentApi';
 
 const POLL_INTERVAL_MS = 10_000;
@@ -18,6 +19,7 @@ export interface AgentStatusHook {
   cookieReady: boolean;
   bearerReady: boolean;
   connectionValid: boolean | null;
+  connectionReason: ValidateReason | null;
   launching: boolean;
   launchFailed: boolean;
   loginLoading: boolean;
@@ -33,6 +35,7 @@ export function useAgentStatus(): AgentStatusHook {
   const [cookieReady, setCookieReady] = useState(false);
   const [bearerReady, setBearerReady] = useState(false);
   const [connectionValid, setConnectionValid] = useState<boolean | null>(null);
+  const [connectionReason, setConnectionReason] = useState<ValidateReason | null>(null);
   const [launching, setLaunching] = useState(false);
   const [launchFailed, setLaunchFailed] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
@@ -60,8 +63,9 @@ export function useAgentStatus(): AgentStatusHook {
     if (agentSt !== 'running') return;
     const cs = await getCookieStatus();
     if (!cs.hasCookies) return;
-    const valid = await validateConnection();
-    setConnectionValid(valid);
+    const result = await validateConnection();
+    setConnectionValid(result.valid);
+    setConnectionReason(result.valid ? null : result.reason);
   }, []);
 
   // 커스텀 프로토콜로 에이전트 자동 실행, 최대 16초 폴링
@@ -121,6 +125,7 @@ export function useAgentStatus(): AgentStatusHook {
     cookieReady,
     bearerReady,
     connectionValid,
+    connectionReason,
     launching,
     launchFailed,
     loginLoading,

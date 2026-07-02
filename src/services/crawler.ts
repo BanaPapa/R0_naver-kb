@@ -427,7 +427,7 @@ export class CrawlerService {
         const message = err instanceof Error ? err.message : String(err);
         log(this.opts.onLog, 'error', `매물 수집 오류: ${message}`);
         if (/429/.test(message)) {
-          log(this.opts.onLog, 'error', '⚠ Naver가 요청을 차단했습니다. [설정] 탭에서 Cookie를 갱신하고 다시 시도해 주세요.');
+          log(this.opts.onLog, 'error', '⚠ Naver가 요청을 잠시 제한했습니다(429). 재로그인은 필요 없습니다 — 잠시 후 다시 시도하면 자동 재시도됩니다. 계속되면 네이버에 로그인하면 완화될 수 있습니다.');
         }
         break;
       }

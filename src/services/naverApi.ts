@@ -1,15 +1,15 @@
 import { randomDelay } from './utils';
-import { AGENT_NAVER_BASE, AGENT_NAVER_NEW_BASE } from './agentApi';
+import { callExtension } from './extensionBridge';
 
-// 기본값: Vite 개발 프록시 / Vercel 프록시 경유
-// 에이전트 실행 감지 시 setNaverBases()로 에이전트 주소로 전환
-let NAVER_BASE = '/naver-api';
-let NAVER_NEW_BASE = '/naver-new-api';
+// 전송 경로 선택:
+//  - 확장 감지됨 → 브라우저 확장 경유(주거 IP + 브라우저 네이버 쿠키). Vercel 배포의 정상 경로.
+//  - 확장 없음   → dev 프록시(/naver-api). 로컬 개발용 폴백.
+let useExtension = false;
 let _crawlToken: string | null = null;
 
-export function setNaverBases(agentRunning: boolean): void {
-  NAVER_BASE = agentRunning ? AGENT_NAVER_BASE : '/naver-api';
-  NAVER_NEW_BASE = agentRunning ? AGENT_NAVER_NEW_BASE : '/naver-new-api';
+// (이름 유지: NaverCrawlerTab이 호출) 확장 감지 여부로 전송 경로를 전환한다.
+export function setNaverBases(extensionPresent: boolean): void {
+  useExtension = extensionPresent;
 }
 
 export function setNaverCrawlToken(token: string | null): void {
@@ -44,14 +44,73 @@ export function clearStoredBearer(): void {
   localStorage.removeItem(BEARER_KEY);
 }
 
-function getNaverHeaders(): Record<string, string> {
+// ── 통합 전송 계층 ──────────────────────────────────────────
+// 확장 경유(useExtension) 또는 dev 프록시 폴백. 두 경로 모두 실패 시
+// .status를 가진 Error를 던져 withRetry의 429 백오프가 동작하게 한다.
+interface NaverReq {
+  base: 'fin' | 'new';
+  path: string;
+  method?: 'GET' | 'POST';
+  query?: Record<string, unknown>;
+  body?: unknown;
+  referer?: string;
+}
+
+function statusError(message: string, status: number): Error & { status: number } {
+  const e = new Error(message) as Error & { status: number };
+  e.status = status;
+  return e;
+}
+
+async function naverRequest(req: NaverReq): Promise<unknown> {
+  const { base, path, method = 'GET', query, body, referer } = req;
+
+  if (useExtension) {
+    const res = await callExtension<{ status?: number; body?: string; error?: string }>(
+      'NAVER_FETCH',
+      { base, path, method, query, body, referer },
+      45_000,
+    );
+    if (res?.error) throw statusError(`확장 오류: ${res.error}`, 0);
+    const status = res?.status ?? 0;
+    if (status < 200 || status >= 300) {
+      throw statusError(`Naver API 오류: ${status}`, status);
+    }
+    try {
+      return JSON.parse(res?.body ?? '{}');
+    } catch {
+      return {};
+    }
+  }
+
+  // 폴백: dev 프록시(로컬 개발). 배포 환경에서 확장이 없으면 이 경로는 IP 차단으로 실패한다.
+  const baseUrl = base === 'fin' ? '/naver-api' : '/naver-new-api';
+  const qs = new URLSearchParams();
+  if (query) {
+    for (const [k, v] of Object.entries(query)) {
+      if (v !== undefined && v !== null) qs.set(k, String(v));
+    }
+  }
+  const url = `${baseUrl}${path}${qs.toString() ? `?${qs.toString()}` : ''}`;
+  const headers: Record<string, string> = { Accept: 'application/json, text/plain, */*' };
   const cookie = getStoredCookie();
-  const headers: Record<string, string> = {
-    Accept: 'application/json, text/plain, */*',
-  };
   if (cookie) headers['X-Naver-Cookie'] = cookie;
+  if (base === 'new') {
+    const bearer = getStoredBearer();
+    if (bearer) headers['X-Naver-Bearer'] = bearer;
+  }
+  if (referer) headers['X-Naver-Referer'] = referer;
   if (_crawlToken) headers['X-Crawl-Token'] = _crawlToken;
-  return headers;
+
+  const init: RequestInit = { method, headers, credentials: 'omit' };
+  if (method === 'POST') {
+    headers['Content-Type'] = 'application/json';
+    init.body = JSON.stringify(body ?? {});
+  }
+
+  const resp = await fetch(url, init);
+  if (!resp.ok) throw statusError(`Naver API 오류: ${resp.status}`, resp.status);
+  return resp.json();
 }
 
 // 429에 대해 지수 백오프 + 지터로 재시도 — WAF cooldown을 더 키우지 않기 위함
@@ -78,85 +137,23 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
   throw new Error('Max retries exceeded');
 }
 
-// GET 요청 (search/autocomplete 등)
+// GET 요청 (fin.land — search/autocomplete 등)
 async function naverFetch(path: string, params: Record<string, unknown>): Promise<unknown> {
-  const query = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== null) {
-      query.set(k, String(v));
-    }
-  }
-
-  const url = `${NAVER_BASE}${path}?${query.toString()}`;
-  const resp = await fetch(url, {
-    method: 'GET',
-    headers: getNaverHeaders(),
-    credentials: 'omit',
-  });
-
-  if (!resp.ok) {
-    const err = new Error(`Naver API 오류: ${resp.status}`) as Error & { status: number };
-    err.status = resp.status;
-    throw err;
-  }
-
-  return resp.json();
+  return naverRequest({ base: 'fin', path, method: 'GET', query: params });
 }
 
-// POST 요청 (complex/article/list)
+// POST 요청 (fin.land — complex/article/list)
 async function naverPost(path: string, body: unknown): Promise<unknown> {
-  const url = `${NAVER_BASE}${path}`;
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: {
-      ...getNaverHeaders(),
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-    credentials: 'omit',
-  });
-
-  if (!resp.ok) {
-    const err = new Error(`Naver API 오류: ${resp.status}`) as Error & { status: number };
-    err.status = resp.status;
-    throw err;
-  }
-
-  return resp.json();
+  return naverRequest({ base: 'fin', path, method: 'POST', body });
 }
 
-
-// GET 요청 (new.land.naver.com — nfront 우회를 위해 fin.land 쿠키 재사용)
+// GET 요청 (new.land.naver.com — 단지목록/빌라·단독 매물)
 async function naverNewFetch(
   path: string,
   params: Record<string, unknown>,
   referer?: string,
 ): Promise<unknown> {
-  const query = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== null) {
-      query.set(k, String(v));
-    }
-  }
-  const url = `${NAVER_NEW_BASE}${path}?${query.toString()}`;
-  const headers: Record<string, string> = { Accept: 'application/json, text/plain, */*' };
-  const cookie = getStoredCookie();
-  if (cookie) headers['X-Naver-Cookie'] = cookie;
-  const bearer = getStoredBearer();
-  if (bearer) headers['X-Naver-Bearer'] = bearer;
-  if (referer) headers['X-Naver-Referer'] = referer;
-  if (_crawlToken) headers['X-Crawl-Token'] = _crawlToken;
-  const resp = await fetch(url, {
-    method: 'GET',
-    headers,
-    credentials: 'omit',
-  });
-  if (!resp.ok) {
-    const err = new Error(`Naver New API 오류: ${resp.status}`) as Error & { status: number };
-    err.status = resp.status;
-    throw err;
-  }
-  return resp.json();
+  return naverRequest({ base: 'new', path, method: 'GET', query: params, referer });
 }
 
 // ====================================================
