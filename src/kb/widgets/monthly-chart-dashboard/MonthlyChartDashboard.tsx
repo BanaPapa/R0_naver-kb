@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { useMonthlyStore } from '../../shared/lib/monthly-store';
-import { HOUSE_TYPE_LABEL, type HouseType, type MonthlyPriceRegion } from '../../entities/monthly-data';
+import type { MonthlyPriceRegion } from '../../entities/monthly-data';
 import { computeDynamicYConfig, type DynamicYOptions } from '../../shared/config/y-axis';
 import { DEFAULT_CHART_OPTIONS } from '../../shared/config';
 import {
@@ -134,8 +134,6 @@ export const MonthlyChartDashboard: React.FC = () => {
     consumeSkipYRangeClear,
     chartOptions,
     setChartOptions,
-    houseType,
-    setHouseType,
   } = useMonthlyStore();
 
   // 기간·지역·기준일이 바뀌면 표시 데이터가 달라지므로 수동 Y축 override를 해제 → 자동 재계산.
@@ -172,16 +170,15 @@ export const MonthlyChartDashboard: React.FC = () => {
     const startDate = saleIndex[0]?.date;
     const cumNote = startDate ? formatCumulativeNote(startDate) : undefined;
 
-    const t = HOUSE_TYPE_LABEL[houseType];
     return [
-      { id: 'saleIndex', title: `${t} 매매가격지수`, subtitle: baseNote, unit: '', data: saleIndex },
-      { id: 'jeonseIndex', title: `${t} 전세가격지수`, subtitle: baseNote, unit: '', data: jeonseIndex },
+      { id: 'saleIndex', title: '아파트 매매가격지수', subtitle: baseNote, unit: '', data: saleIndex },
+      { id: 'jeonseIndex', title: '아파트 전세가격지수', subtitle: baseNote, unit: '', data: jeonseIndex },
       { id: 'saleChange', title: '매매 증감률 (전월대비)', unit: '%', data: toMonthOverMonth(saleIndex, selectedRegions) },
       { id: 'jeonseChange', title: '전세 증감률 (전월대비)', unit: '%', data: toMonthOverMonth(jeonseIndex, selectedRegions) },
       { id: 'saleCumulative', title: '매매 누적변동률', subtitle: cumNote, unit: '%', data: toCumulative(saleIndex, selectedRegions) },
       { id: 'jeonseCumulative', title: '전세 누적변동률', subtitle: cumNote, unit: '%', data: toCumulative(jeonseIndex, selectedRegions) },
     ];
-  }, [chartDataByMetric, startIndex, endIndex, snappedBaseDate, selectedRegions, houseType]);
+  }, [chartDataByMetric, startIndex, endIndex, snappedBaseDate, selectedRegions]);
 
   if (selectedRegions.length === 0) {
     return (
@@ -233,29 +230,6 @@ export const MonthlyChartDashboard: React.FC = () => {
 
   return (
     <div className="flex h-full flex-col gap-3">
-      {/* 주택유형 셀렉터 — 아파트 외 유형은 시군구 미제공 지역이 많아 상위지역으로 폴백된다 */}
-      <div className="flex flex-none items-center gap-2">
-        <span className="text-sm font-semibold text-gray-500">주택유형</span>
-        <div className="flex overflow-hidden rounded-lg border border-gray-300">
-          {(Object.keys(HOUSE_TYPE_LABEL) as HouseType[]).map(t => (
-            <button
-              key={t}
-              onClick={() => setHouseType(t)}
-              className={`px-3 py-1.5 text-sm font-semibold transition-colors ${
-                houseType === t ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              {HOUSE_TYPE_LABEL[t]}
-            </button>
-          ))}
-        </div>
-        {houseType !== 'apt' && (
-          <span className="text-xs text-gray-400">
-            {HOUSE_TYPE_LABEL[houseType]} 지수는 시군구 미제공 지역이 많아 상위지역 값으로 대체될 수 있습니다.
-          </span>
-        )}
-      </div>
-
       {/* 6개 그래프 — 남은 높이를 3×2로 가득 채움 (지수·증감·누적변동률) */}
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 xl:grid-cols-2 xl:grid-rows-3">
         {chartViews.map(view => {

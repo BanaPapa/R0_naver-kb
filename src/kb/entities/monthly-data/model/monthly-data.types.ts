@@ -39,20 +39,8 @@ export interface RegionCompareResult {
   items: RegionCompareItem[];
 }
 
-// 월간 시세지표 주택유형 — KB 월간 시트 1~8.
-// 아파트 외 유형은 시군구 커버리지가 좁아 상위 지역 폴백 빈도가 높다.
-export type HouseType = 'apt' | 'total' | 'detached' | 'row';
-
-export const HOUSE_TYPE_LABEL: Record<HouseType, string> = {
-  apt: '아파트',
-  total: '종합',
-  detached: '단독',
-  row: '연립',
-};
-
-// 시세지표(주간 동일 구조) — 선택 지역별 매매/전세 지수 시계열.
+// 시세지표(주간 동일 구조) — 선택 지역별 매매/전세 아파트 지수 시계열.
 // key는 선택자(주간 형식)의 선택 키이며, 차트 dataKey·라벨 매핑에 그대로 쓰인다.
-// 필드명은 역사적 이유로 *AptIndex 지만, houseType 선택 시 해당 유형의 지수가 담긴다.
 export interface MonthlyPriceRegion {
   key: string; // 선택 키 (예: "서울특별시", "경기도|수원시 장안구")
   resolvedRegion: string | null; // 실제 데이터 지역명 (없으면 null)

@@ -14,7 +14,6 @@ import { monthlyLocal, monthlyTradeLocal, monthlyForecastLocal } from '../../../
 import { buildChartData, nearestDateIndex, type ChartRow } from '../../../widgets/chart-dashboard/chart-primitives';
 import type { MetricKey } from '../../../shared/config';
 import type { WeeklyDataRow } from '../../../entities/kb-data';
-import { HOUSE_TYPE_LABEL } from '../../../entities/monthly-data';
 import type { MonthlyPriceRegion, MonthlyMarketRegion, MonthlyForecastRegion, TimeseriesPoint } from '../../../entities/monthly-data';
 import type {
   AnalysisRequest,
@@ -136,12 +135,12 @@ function monthlyIndexRows(price: MonthlyPriceRegion[], keys: string[], field: 's
   });
 }
 
-function monthlyPriceDatasets(priceData: MonthlyPriceRegion[], regions: string[], from: string, to: string, baseDate: string, typeLabel = '아파트'): AnalysisDataset[] {
+function monthlyPriceDatasets(priceData: MonthlyPriceRegion[], regions: string[], from: string, to: string, baseDate: string): AnalysisDataset[] {
   const saleIdx = monthlyIndexRows(priceData, regions, 'saleAptIndex', baseDate);
   const jeonseIdx = monthlyIndexRows(priceData, regions, 'jeonseAptIndex', baseDate);
   return compact([
-    makeDataset('monthly-price', 'saleIndex', `${typeLabel} 매매가격지수`, '', sliceByRegion(saleIdx, regions, from, to)),
-    makeDataset('monthly-price', 'jeonseIndex', `${typeLabel} 전세가격지수`, '', sliceByRegion(jeonseIdx, regions, from, to)),
+    makeDataset('monthly-price', 'saleIndex', '아파트 매매가격지수', '', sliceByRegion(saleIdx, regions, from, to)),
+    makeDataset('monthly-price', 'jeonseIndex', '아파트 전세가격지수', '', sliceByRegion(jeonseIdx, regions, from, to)),
     makeDataset('monthly-price', 'saleChange', '매매 증감률(전월대비)', '%', changeByRegion(saleIdx, regions, from, to)),
     makeDataset('monthly-price', 'jeonseChange', '전세 증감률(전월대비)', '%', changeByRegion(jeonseIdx, regions, from, to)),
   ]);
@@ -235,7 +234,7 @@ function collectTab(tab: AnalysisTab, regionFilter?: string[]): { datasets: Anal
     }
     case 'monthly-price': {
       const regions = within(monthly.selectedRegions);
-      return { datasets: monthlyPriceDatasets(monthly.priceData, regions, monthly.fromDate, monthly.toDate, monthly.baseDate, HOUSE_TYPE_LABEL[monthly.houseType]), from: monthly.fromDate, to: monthly.toDate, regions };
+      return { datasets: monthlyPriceDatasets(monthly.priceData, regions, monthly.fromDate, monthly.toDate, monthly.baseDate), from: monthly.fromDate, to: monthly.toDate, regions };
     }
     case 'monthly-trade': {
       const regions = within(monthly.selectedRegions);

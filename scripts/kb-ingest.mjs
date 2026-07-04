@@ -375,19 +375,13 @@ const weeklyTrade = assemble({
   jeonseActivity: parseGrouped(wbW, '8.전세거래활발', 2, 'serial'),
 });
 
-// 3) kb-monthly.json — 계층형 시세·시장(2·6·28·47·48) + 주택유형(1·3·4·5·7·8)
-//    + 중위 아파트가(43·44) + 선도50(16)
+// 3) kb-monthly.json — 계층형 아파트 시세·시장(2·6·28·47·48)
+//    + 중위 아파트가(43·44) + 선도50(16). 아파트 전용 — 종합/단독/연립 시트는 다루지 않는다.
 const mSale = parseMonthlyHierarchy(wbM, '2.매매APT');
 const mJeonse = parseMonthlyHierarchy(wbM, '6.전세APT');
 const mRatio = parseMonthlyHierarchy(wbM, '28.아파트매매전세비');
 const mAvgSale = parseMonthlyHierarchy(wbM, '47.㎡당아파트평균매매');
 const mAvgJeonse = parseMonthlyHierarchy(wbM, '48.㎡당아파트평균전세');
-const mSaleTotal = parseMonthlyHierarchy(wbM, '1.매매종합');
-const mSaleDet = parseMonthlyHierarchy(wbM, '3.매매단독');
-const mSaleRow = parseMonthlyHierarchy(wbM, '4.매매연립');
-const mJeonseTotal = parseMonthlyHierarchy(wbM, '5.전세종합');
-const mJeonseDet = parseMonthlyHierarchy(wbM, '7.전세단독');
-const mJeonseRow = parseMonthlyHierarchy(wbM, '8.전세연립');
 const mMedianSale = parseMedianApt(wbM, '43.중위매매');
 const mMedianJeonse = parseMedianApt(wbM, '44.중위전세');
 const mLeading = parseLeading50(wbM, '16.선도50');
@@ -398,17 +392,10 @@ const monthly = assemble(
     aptSaleJeonseRatio: mRatio,
     aptAvgSalePerM2: mAvgSale,
     aptAvgJeonsePerM2: mAvgJeonse,
-    // 주택유형별 지수 (P1-①) — 종합/단독/연립
-    saleTotalIndex: mSaleTotal,
-    saleDetachedIndex: mSaleDet,
-    saleRowIndex: mSaleRow,
-    jeonseTotalIndex: mJeonseTotal,
-    jeonseDetachedIndex: mJeonseDet,
-    jeonseRowIndex: mJeonseRow,
-    // 중위 아파트 가격 (P1-②, 만원/호, 상위 25지역)
+    // 중위 아파트 가격 (만원/호, 상위 25지역)
     medianAptSale: mMedianSale,
     medianAptJeonse: mMedianJeonse,
-    // KB 선도아파트 50지수 (P1-③, 전국 단일)
+    // KB 선도아파트 50지수 (전국 단일)
     leading50Index: mLeading,
   },
   { omitEmptyMetrics: true },
@@ -416,7 +403,7 @@ const monthly = assemble(
 // 지역 메타(트리): 시트 등장 순서 유지, 데이터 있는 경로만
 {
   const orderAll = [];
-  for (const src of [mSale, mJeonse, mRatio, mAvgSale, mAvgJeonse, mSaleTotal, mSaleDet, mSaleRow, mJeonseTotal, mJeonseDet, mJeonseRow, mMedianSale, mMedianJeonse])
+  for (const src of [mSale, mJeonse, mRatio, mAvgSale, mAvgJeonse, mMedianSale, mMedianJeonse])
     for (const p of src.order) if (!orderAll.includes(p)) orderAll.push(p);
   monthly.regions = orderAll
     .filter(p => monthly.data[p])
