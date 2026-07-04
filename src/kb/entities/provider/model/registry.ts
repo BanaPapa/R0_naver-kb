@@ -18,17 +18,22 @@ export const PROVIDERS: ProviderDef[] = [
     auth: ['apiKey', 'subscription'],
     // ChatGPT 구독(Plus/Pro)은 Codex CLI와 동일한 공개 OAuth로 로그인하고,
     // api.openai.com이 아닌 ChatGPT 백엔드(codex/responses)로 요청한다(실험적, ToS 회색지대).
+    // device-code: 팝업/콜백 없이 1회용 코드 승인 → 배포 환경에서도 작동(P1_Reviewer 검증값).
     subscription: {
-      kind: 'oauth-loopback',
-      authorizeUrl: 'https://auth.openai.com/oauth/authorize',
-      tokenUrl: 'https://auth.openai.com/oauth/token',
-      clientId: 'app_EMoamEEZ73f0CkXaXp7hrann',
-      scopes: ['openid', 'profile', 'email', 'offline_access'],
-      loopbackPort: 1455,
-      loopbackPath: '/auth/callback',
-      extraAuthParams: { id_token_add_organizations: 'true', codex_cli_simplified_flow: 'true', originator: 'codex_cli_rs' },
+      kind: 'device-code',
       apiShape: 'chatgpt-codex',
       baseUrl: 'https://chatgpt.com/backend-api/codex',
+      issuer: 'https://auth.openai.com',
+      clientId: 'app_EMoamEEZ73f0CkXaXp7hrann',
+      tokenUrl: 'https://auth.openai.com/oauth/token',
+      deviceUserCodeUrl: 'https://auth.openai.com/api/accounts/deviceauth/usercode',
+      deviceTokenUrl: 'https://auth.openai.com/api/accounts/deviceauth/token',
+      verificationUrl: 'https://auth.openai.com/codex/device',
+      steps: [
+        'OpenAI 장치 인증 페이지를 여세요',
+        '표시된 1회용 코드를 입력하고 ChatGPT 계정으로 승인하세요',
+        '승인 후 이 화면으로 돌아오면 자동으로 완료됩니다',
+      ],
     },
     docsUrl: 'https://developers.openai.com/codex/auth',
   },
@@ -42,7 +47,7 @@ export const PROVIDERS: ProviderDef[] = [
     // 사용자가 복사해 붙여넣고, 백엔드가 PKCE로 access_token으로 교환한다.
     subscription: {
       kind: 'oauth-code',
-      authorizeUrl: 'https://auth.x.ai/oauth2/authorize',
+      authorizeUrl: 'https://accounts.x.ai/oauth2/consent',
       tokenUrl: 'https://auth.x.ai/oauth2/token',
       clientId: 'b1a00492-073a-47ea-816f-4c329264a828',
       scopes: ['openid', 'profile', 'email', 'offline_access', 'grok-cli:access', 'api:access'],

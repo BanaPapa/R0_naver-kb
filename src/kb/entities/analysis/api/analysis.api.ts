@@ -1,6 +1,7 @@
 import type { AnalysisRequest, AnalysisResult, AskRequest } from '../model/analysis.types';
 import { supabase } from '../../../../services/supabase';
 import { buildAnalysisMessages, buildAskMessages } from '../../../features/analysis/lib/messages';
+import { sessionCredential } from '../../provider/api/provider.api';
 
 // 분석 실행 백엔드 — 환경별 분기:
 //  - 개발: vite 브리지(/api/analysis) — 파일 큐 + 폴링. claude-bridge(세션 대행)와
@@ -22,29 +23,30 @@ async function runServerless(
   payload: AnalysisRequest | AskRequest,
   opts: PollOptions,
 ): Promise<AnalysisResult> {
-  if (!supabase) throw new Error('Supabase가 설정되지 않았습니다.');
-  const { data } = await supabase.auth.getSession();
-  const session = data.session;
-  if (!session) throw new Error('로그인 후 사용할 수 있습니다.');
-
   const provider = payload.provider ?? '';
   if (!provider || provider === 'claude-bridge') {
-    throw new Error('이 환경에서는 지원하지 않는 프로바이더입니다. 연결 관리에서 API 키 프로바이더를 선택해 주세요.');
+    throw new Error('이 환경에서는 지원하지 않는 프로바이더입니다. 연결 관리에서 API 키/구독 프로바이더를 선택해 주세요.');
   }
   if (!payload.model) throw new Error('모델을 선택해 주세요.');
+
+  // session 모드면 자격증명을 첨부(로그인 불필요). account 모드면 access token으로 서버가 조회.
+  const local = sessionCredential(provider);
+  const accessToken = supabase ? (await supabase.auth.getSession()).data.session?.access_token : undefined;
+  if (!local && !accessToken) throw new Error('로그인 후 사용하거나, 연결 관리에서 "이번만 사용"으로 키를 연결해 주세요.');
 
   const messages =
     payload.kind === 'ask' ? buildAskMessages(payload as AskRequest) : buildAnalysisMessages(payload as AnalysisRequest);
 
   const res = await fetch('/api/kb-analysis', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+    headers: { 'Content-Type': 'application/json', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
     body: JSON.stringify({
       action: 'chat',
       provider,
       model: payload.model,
       system: messages.system,
       user: messages.user,
+      ...(local ? { credential: local } : {}),
     }),
     signal: opts.signal,
   });

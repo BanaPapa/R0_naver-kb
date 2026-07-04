@@ -18,6 +18,8 @@ interface ProviderStore {
   startOAuth: (id: string) => Promise<void>;
   startOAuthCode: (id: string) => Promise<string>;
   submitOAuthCode: (id: string, state: string, code: string) => Promise<void>;
+  startDeviceCode: (id: string) => Promise<api.DeviceStart>;
+  pollDeviceCode: (id: string, state: string) => Promise<{ pending: boolean }>;
   disconnect: (id: string) => Promise<void>;
   select: (providerId: string, modelId: string | null) => void;
 }
@@ -79,6 +81,14 @@ export const useProviderStore = create<ProviderStore>()(
       submitOAuthCode: async (id, state, code) => {
         await api.exchangeOAuthCode(id, state, code);
         await get().refreshProviders();
+      },
+
+      // device-code(OpenAI) — 배포 전용. 시작(코드 표시) → 폴링(승인 대기) → 저장.
+      startDeviceCode: async (id) => api.startDeviceCode(id),
+      pollDeviceCode: async (id, state) => {
+        const r = await api.pollDeviceCode(id, state);
+        if (!r.pending) await get().refreshProviders();
+        return r;
       },
 
       disconnect: async (id) => {

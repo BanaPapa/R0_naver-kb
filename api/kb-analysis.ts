@@ -39,6 +39,8 @@ interface Credential {
   apiKey?: string;
   token?: string;
   accessToken?: string;
+  refreshToken?: string;
+  accountId?: string;
 }
 interface Usage {
   promptTokens?: number;
@@ -48,6 +50,11 @@ interface Usage {
 }
 
 const keyOf = (c: Credential): string | undefined => c.apiKey ?? c.accessToken ?? c.token;
+// 구독(ChatGPT Codex) 자격증명인가 — OpenAI + subscription 토큰이면 codex 백엔드를 쓴다.
+const isCodex = (provider: string, c: Credential): boolean =>
+  provider === 'openai' && c.method === 'subscription' && Boolean(c.accessToken);
+const CODEX_BASE = 'https://chatgpt.com/backend-api/codex';
+const CODEX_VERSION = '0.0.0';
 
 async function asJson(res: Response, label: string): Promise<Record<string, unknown>> {
   if (!res.ok) throw new Error(`${label} 오류 (${res.status}) ${await res.text().catch(() => '')}`);
@@ -186,19 +193,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     res.status(405).json({ error: 'POST만 지원합니다.' });
     return;
   }
-  const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !anonKey) {
-    res.status(500).json({ error: 'Supabase 환경변수 미설정' });
-    return;
-  }
-  const accessToken = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '');
-  if (!accessToken) {
-    res.status(401).json({ error: '로그인이 필요합니다.' });
-    return;
-  }
-
-  const { action, provider, model, system, user } = (req.body ?? {}) as Record<string, string | undefined>;
+  // body.credential 이 오면 "이번만 사용"(session) 모드 — 서버 조회 없이 그대로 사용.
+  // 없으면 "계정 저장"(account) 모드 — 사용자 JWT로 Supabase에서 본인 자격증명 조회.
+  const body = (req.body ?? {}) as {
+    action?: string;
+    provider?: string;
+    model?: string;
+    system?: string;
+    user?: string;
+    credential?: Credential;
+  };
+  const { action, provider, model, system, user } = body;
   const def = provider ? DEFS[provider] : undefined;
   if (!def) {
     res.status(400).json({ error: `지원하지 않는 프로바이더: ${provider}` });
@@ -206,34 +211,54 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 
   try {
-    const cred = await getCredential(supabaseUrl, anonKey, accessToken, provider!);
-    if (cred === null) {
-      res.status(401).json({ error: '유효하지 않은 세션입니다. 다시 로그인해 주세요.' });
-      return;
+    let cred: Credential;
+    if (body.credential) {
+      cred = body.credential; // session 모드 — 서버 무저장
+    } else {
+      const supabaseUrl = process.env.VITE_SUPABASE_URL;
+      const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
+      if (!supabaseUrl || !anonKey) {
+        res.status(500).json({ error: 'Supabase 환경변수 미설정' });
+        return;
+      }
+      const accessToken = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '');
+      if (!accessToken) {
+        res.status(401).json({ error: '로그인이 필요합니다.' });
+        return;
+      }
+      const found = await getCredential(supabaseUrl, anonKey, accessToken, provider!);
+      if (found === null) {
+        res.status(401).json({ error: '유효하지 않은 세션입니다. 다시 로그인해 주세요.' });
+        return;
+      }
+      cred = found;
     }
+
+    const codex = isCodex(provider!, cred);
     const hasKey = Boolean(keyOf(cred));
 
     if (action === 'models') {
       if (!hasKey && !def.publicModelList) {
-        res.status(400).json({ error: '먼저 연결 관리에서 API 키를 등록해 주세요.' });
+        res.status(400).json({ error: '먼저 연결 관리에서 API 키 또는 구독을 연결해 주세요.' });
         return;
       }
-      res.status(200).json(await listModels(def, cred));
+      res.status(200).json(codex ? await codexModels(cred) : await listModels(def, cred));
       return;
     }
 
     if (action === 'chat') {
       if (!hasKey) {
-        res.status(400).json({ error: '먼저 연결 관리에서 API 키를 등록해 주세요.' });
+        res.status(400).json({ error: '먼저 연결 관리에서 API 키 또는 구독을 연결해 주세요.' });
         return;
       }
       if (!model || !system || !user) {
         res.status(400).json({ error: 'model/system/user가 필요합니다.' });
         return;
       }
-      const run = def.shape === 'anthropic' ? chatAnthropic : def.shape === 'gemini' ? chatGemini : chatOpenAi;
-      const { text, usage } = await run(def, cred, model, system, user);
-      res.status(200).json({ result: text || '_빈 응답_', model, usage });
+      const result = codex
+        ? await codexChat(cred, model, system, user)
+        : await (def.shape === 'anthropic' ? chatAnthropic : def.shape === 'gemini' ? chatGemini : chatOpenAi)(def, cred, model, system, user);
+      res.status(200).json({ result: result.text || '_빈 응답_', model, usage: result.usage });
       return;
     }
 
@@ -241,4 +266,75 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   } catch (err) {
     res.status(502).json({ error: err instanceof Error ? err.message : '프로바이더 호출 실패' });
   }
+}
+
+// ── ChatGPT Codex (구독) — P1_Reviewer chatgptCodex 어댑터의 인라인 사본 ──
+function codexHeaders(cred: Credential): Record<string, string> {
+  const h: Record<string, string> = {
+    Authorization: `Bearer ${cred.accessToken}`,
+    originator: 'codex_cli_rs',
+    'User-Agent': `codex_cli_rs/${CODEX_VERSION} kb-web`,
+    version: CODEX_VERSION,
+  };
+  if (cred.accountId) h['chatgpt-account-id'] = cred.accountId;
+  return h;
+}
+
+async function codexModels(cred: Credential): Promise<unknown[]> {
+  const res = await fetch(`${CODEX_BASE}/models?client_version=${CODEX_VERSION}`, {
+    headers: { ...codexHeaders(cred), Accept: 'application/json' },
+  });
+  const raw = await res.text();
+  if (!res.ok) throw new Error(`ChatGPT 구독 모델 조회 오류 (${res.status}) ${raw.slice(0, 200)}`);
+  const json = JSON.parse(raw) as { models?: { slug?: string; display_name?: string; visibility?: string; supported_in_api?: boolean; context_window?: number }[] };
+  return (json.models ?? [])
+    .filter(m => m.slug && m.visibility === 'list' && m.supported_in_api !== false)
+    .map(m => ({ id: m.slug, label: m.display_name ?? m.slug, contextLength: m.context_window }));
+}
+
+function codexTextFromOutput(output: { content?: { type?: string; text?: string }[] }[] | undefined): string {
+  if (!Array.isArray(output)) return '';
+  return output.flatMap(i => i.content ?? []).filter(c => c.type === 'output_text' && typeof c.text === 'string').map(c => c.text as string).join('');
+}
+
+async function codexChat(cred: Credential, model: string, system: string, user: string): Promise<{ text: string; usage?: Usage }> {
+  const res = await fetch(`${CODEX_BASE}/responses`, {
+    method: 'POST',
+    headers: { ...codexHeaders(cred), 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+    body: JSON.stringify({
+      model,
+      instructions: system,
+      input: [{ type: 'message', role: 'user', content: [{ type: 'input_text', text: user }] }],
+      store: false,
+      stream: true,
+    }),
+  });
+  const raw = await res.text();
+  if (!res.ok) throw new Error(`ChatGPT 구독 오류 (${res.status}) ${raw.slice(0, 300)}`);
+  // SSE 또는 단일 JSON 파싱
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('{')) {
+    try {
+      const j = JSON.parse(trimmed) as { output?: { content?: { type?: string; text?: string }[] }[]; usage?: { input_tokens?: number; output_tokens?: number; total_tokens?: number } };
+      const u = j.usage;
+      return { text: codexTextFromOutput(j.output), usage: u ? { promptTokens: num(u.input_tokens), completionTokens: num(u.output_tokens), totalTokens: num(u.total_tokens) } : undefined };
+    } catch { /* SSE 폴백 */ }
+  }
+  let text = '';
+  let usage: Usage | undefined;
+  for (const line of trimmed.split(/\r?\n/)) {
+    const m = line.match(/^data:\s?(.*)$/);
+    if (!m) continue;
+    const p = m[1]!.trim();
+    if (!p || p === '[DONE]') continue;
+    let evt: { type?: string; delta?: string; response?: { output?: { content?: { type?: string; text?: string }[] }[]; usage?: { input_tokens?: number; output_tokens?: number; total_tokens?: number } } };
+    try { evt = JSON.parse(p); } catch { continue; }
+    if (evt.type === 'response.output_text.delta' && typeof evt.delta === 'string') text += evt.delta;
+    else if (evt.type === 'response.completed' && evt.response) {
+      const u = evt.response.usage;
+      if (u) usage = { promptTokens: num(u.input_tokens), completionTokens: num(u.output_tokens), totalTokens: num(u.total_tokens) };
+      if (!text) text = codexTextFromOutput(evt.response.output);
+    }
+  }
+  return { text, usage };
 }
