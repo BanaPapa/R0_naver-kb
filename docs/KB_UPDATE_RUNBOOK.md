@@ -3,10 +3,27 @@
 주간(매주 금요일 발표)·월간(매월 말 발표) KB 시계열을 앱에 반영하는 절차.
 데이터 구조 배경은 `docs/KB_TIMESERIES_DATA_REPORT.md` 참고.
 
-## ⚡ 완전 자동 (기본 — 설정돼 있음)
+## ⚡ 완전 자동 (기본 — GitHub Actions, PC 불필요)
 
-Windows 작업 스케줄러 `KB-Timeseries-AutoUpdate` 가 **매일 10:30**에
-`scripts/kb-update.cmd` 를 실행한다. 스크립트는:
+`.github/workflows/kb-data-update.yml` 이 **매일 10:30 KST**에 깃허브 클라우드에서 실행된다:
+
+1. KB 통계 API로 최신 주간/월간 시계열 확인 (상태: `public/data/.kb-state.json`, 커밋됨)
+2. 새 파일이면 다운로드 → 인제스트 → **public/data 자동 커밋** → Vercel 자동 재배포(정적 모드 반영)
+3. GitHub Secrets(`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`)가 등록돼 있으면 Supabase 발행까지
+   (미등록이어도 커밋 경로는 정상 — supabase 모드를 쓸 때만 필요)
+4. 같은 파일이면 아무것도 안 함(멱등)
+
+수동 실행: GitHub 저장소 → Actions 탭 → "KB 시계열 자동 갱신" → **Run workflow**.
+실행 이력·로그도 같은 화면에서 확인.
+
+**어떤 PC도 켜져 있을 필요가 없고, 로컬 작업 폴더를 지워도 갱신은 계속된다.**
+로컬에서 즉시 갱신하고 싶을 때만 아래 로컬 방식을 쓰면 된다.
+
+## 로컬 실행 (선택 — 즉시 갱신·오프라인 검증용)
+
+같은 스크립트를 로컬에서 돌릴 수 있다. Windows 작업 스케줄러 등록(선택):
+`schtasks /Create /TN "KB-Timeseries-AutoUpdate" /TR "C:\dev\r0_naver-kb\scripts\kb-update.cmd" /SC DAILY /ST 10:30 /F`
+— GitHub Actions가 기본이므로 보통 불필요. 스크립트는:
 
 1. KB 통계 API(`api.kbland.kr/land-extra/statistics/reference`, 인증 불필요)로 최신
    주간/월간 시계열 파일명을 확인

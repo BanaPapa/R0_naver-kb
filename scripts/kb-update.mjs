@@ -22,7 +22,10 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC_DIR = path.join(ROOT, 'data-src');
-const STATE_FILE = path.join(SRC_DIR, '.state.json');
+// 상태 파일은 git에 커밋되는 위치에 둔다 — GitHub Actions처럼 매번 새로 체크아웃하는
+// 환경에서도 "마지막으로 반영한 파일"을 기억해 불필요한 재다운로드를 막는다.
+const STATE_FILE = path.join(ROOT, 'public', 'data', '.kb-state.json');
+const LEGACY_STATE_FILE = path.join(SRC_DIR, '.state.json');
 
 const args = process.argv.slice(2);
 const FORCE = args.includes('--force');
@@ -80,15 +83,21 @@ async function download(entry, dest) {
 }
 
 function loadState() {
-  try {
-    return JSON.parse(readFileSync(STATE_FILE, 'utf8'));
-  } catch {
-    return {};
+  for (const file of [STATE_FILE, LEGACY_STATE_FILE]) {
+    try {
+      return JSON.parse(readFileSync(file, 'utf8'));
+    } catch {
+      /* 다음 후보 */
+    }
   }
+  return {};
 }
 
-// .env.kb-publish (git 미추적)에서 발행용 시크릿 로드. 형식: KEY=VALUE 줄들.
+// 발행용 시크릿 로드 — 우선순위: 프로세스 환경변수(CI) → .env.kb-publish 파일(로컬, git 미추적).
 function loadPublishEnv() {
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return { SUPABASE_URL: process.env.SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY };
+  }
   const file = path.join(ROOT, '.env.kb-publish');
   if (!existsSync(file)) return null;
   const env = {};
