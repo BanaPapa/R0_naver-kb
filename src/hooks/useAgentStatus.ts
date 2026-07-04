@@ -4,7 +4,6 @@ import {
   getCookieStatus,
   startNaverLogin,
   validateConnection,
-  tryLaunchAgent,
   AgentStatus,
   CookieStatus,
   ValidateReason,
@@ -20,13 +19,10 @@ export interface AgentStatusHook {
   bearerReady: boolean;
   connectionValid: boolean | null;
   connectionReason: ValidateReason | null;
-  launching: boolean;
-  launchFailed: boolean;
   loginLoading: boolean;
   loginError: string | null;
   loginJustSucceeded: boolean;
   recheck: () => Promise<CookieStatus | null>;
-  launchAndWait: () => Promise<void>;
   triggerLogin: () => Promise<void>;
 }
 
@@ -36,8 +32,6 @@ export function useAgentStatus(): AgentStatusHook {
   const [bearerReady, setBearerReady] = useState(false);
   const [connectionValid, setConnectionValid] = useState<boolean | null>(null);
   const [connectionReason, setConnectionReason] = useState<ValidateReason | null>(null);
-  const [launching, setLaunching] = useState(false);
-  const [launchFailed, setLaunchFailed] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginJustSucceeded, setLoginJustSucceeded] = useState(false);
@@ -68,25 +62,6 @@ export function useAgentStatus(): AgentStatusHook {
     setConnectionReason(result.valid ? null : result.reason);
   }, []);
 
-  // 커스텀 프로토콜로 에이전트 자동 실행, 최대 16초 폴링
-  const launchAndWait = useCallback(async (): Promise<void> => {
-    setLaunching(true);
-    setLaunchFailed(false);
-    tryLaunchAgent();
-    for (let i = 0; i < 8; i++) {
-      await new Promise<void>((r) => setTimeout(r, 2000));
-      const agentSt = await pingAgent();
-      if (agentSt === 'running') {
-        await check();
-        await validate();
-        setLaunching(false);
-        return;
-      }
-    }
-    setLaunching(false);
-    setLaunchFailed(true);
-  }, [check, validate]);
-
   const triggerLogin = useCallback(async (): Promise<void> => {
     setLoginLoading(true);
     setLoginError(null);
@@ -105,14 +80,14 @@ export function useAgentStatus(): AgentStatusHook {
     }
   }, [check, validate]);
 
-  // 에이전트 실행 여부 10초마다 감지
+  // 확장 설치·활성 여부 10초마다 감지
   useEffect(() => {
     void check();
     const id = setInterval(check, POLL_INTERVAL_MS);
     return () => clearInterval(id);
   }, [check]);
 
-  // 에이전트 실행 + 쿠키 있을 때만 10분마다 실제 토큰 검증
+  // 확장 활성 + 쿠키 있을 때만 10분마다 실제 토큰 검증
   useEffect(() => {
     if (status !== 'running' || !cookieReady) return;
     void validate();
@@ -126,13 +101,10 @@ export function useAgentStatus(): AgentStatusHook {
     bearerReady,
     connectionValid,
     connectionReason,
-    launching,
-    launchFailed,
     loginLoading,
     loginError,
     loginJustSucceeded,
     recheck: check,
-    launchAndWait,
     triggerLogin,
   };
 }

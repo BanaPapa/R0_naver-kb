@@ -4,7 +4,7 @@
 // 사용자 브라우저(주거 IP)에서 직접 호출하고 JSON을 돌려준다.
 // 브라우저의 네이버 세션 쿠키는 host_permissions 덕분에 fetch에 자동 포함된다.
 
-const VERSION = '2.0.4';
+const VERSION = '2.1.0';
 const FIN_LAND_BASE = 'https://fin.land.naver.com/front-api/v1';
 const NEW_LAND_BASE = 'https://new.land.naver.com';
 
@@ -244,6 +244,52 @@ async function naverFetch(payload) {
   return result;
 }
 
+// ── 호갱노노 리뷰 중계 (R7 Review) ──────────────────────────
+// 리뷰 API는 로그인 세션 필수(익명 401). host_permissions 덕분에
+// 사용자의 hogangnono.com 로그인 쿠키가 fetch에 자동 포함된다.
+const HGNN_API = 'https://hogangnono.com/api';
+// 호갱노노 JS 번들(v2.5.0.38)의 앱 레벨 정적 토큰
+const HGNN_AT = 'B-7W6GsCNz-Bnrknn4UW7-kyG2TUs8gxwMpg';
+
+function hgnnHeaders() {
+  return {
+    Accept: 'application/json',
+    'x-hogangnono-api-version': '2.5.0',
+    'x-hogangnono-app-name': 'hogangnono',
+    'x-hogangnono-at': HGNN_AT,
+    'x-hogangnono-ct': String(Date.now()),
+    'x-hogangnono-platform': 'desktop',
+    'x-hogangnono-release-version': '2.5.0.38',
+  };
+}
+
+async function hgnnFetchReviewPage(aptId, page) {
+  try {
+    const res = await fetch(
+      `${HGNN_API}/v2/apts/${encodeURIComponent(aptId)}/reviews?orderType=1&page=${page}`,
+      { headers: hgnnHeaders(), credentials: 'include' },
+    );
+    if (res.status === 401 || res.status === 403) return { ok: false, error: 'NOT_LOGGED_IN' };
+    if (!res.ok) return { ok: false, error: `HTTP_${res.status}` };
+
+    const data = await res.json().catch(() => null);
+    if (!data) return { ok: false, error: 'PARSE_ERROR' };
+    if (data.status === 'error') {
+      const notLoggedIn = data.error === 'Unauthorized' || String(data.message).includes('로그인');
+      return { ok: false, error: notLoggedIn ? 'NOT_LOGGED_IN' : data.message || 'API_ERROR' };
+    }
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, error: `NETWORK: ${e.message}` };
+  }
+}
+
+// 로그인 필요 엔드포인트를 프로브로 사용(실존 단지 ID). 성공하면 로그인된 것.
+async function hgnnLoggedIn() {
+  const r = await hgnnFetchReviewPage('a2n36', 1);
+  return r.ok;
+}
+
 // ── 메시지 라우터 ───────────────────────────────────────────
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   (async () => {
@@ -266,6 +312,19 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         case 'NAVER_FETCH': {
           const result = await naverFetch(msg.payload || {});
           sendResponse(result);
+          break;
+        }
+        case 'HGNN_STATUS': {
+          sendResponse({ loggedIn: await hgnnLoggedIn() });
+          break;
+        }
+        case 'HGNN_FETCH_REVIEW_PAGE': {
+          const { aptId, page } = msg.payload || {};
+          if (!aptId) {
+            sendResponse({ ok: false, error: 'MISSING_APT_ID' });
+            break;
+          }
+          sendResponse(await hgnnFetchReviewPage(aptId, Number(page) || 1));
           break;
         }
         default:

@@ -178,11 +178,11 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus, isAdmin,
     // 안내만 한다(내부 withRetry가 백오프로 재시도). 실제 인증 만료(expired)에만 재로그인 요구.
     if (connectionValid === false) {
       if (connectionReason === 'expired' || connectionReason === 'no-login') {
-        setNotice('네이버 로그인이 만료되었습니다. 네이버에 다시 로그인한 뒤 검색해 주세요.');
+        setNotice('로그인이 만료되었습니다. 다시 로그인한 뒤 검색해 주세요.');
         return;
       }
       if (connectionReason === 'rate-limited') {
-        setNotice('네이버 요청이 잠시 제한되었습니다(429). 재로그인은 필요 없습니다 — 잠시 후 다시 시도하면 자동 재시도됩니다.');
+        setNotice('요청이 잠시 제한되었습니다(429). 재로그인은 필요 없습니다 — 잠시 후 다시 시도하면 자동 재시도됩니다.');
         // 차단하지 않고 진행: withRetry가 429를 백오프 재시도한다.
       }
     }
@@ -211,9 +211,9 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus, isAdmin,
           </div>
           <h2>매물시세 연결기(브라우저 확장)가 필요합니다</h2>
           <p>
-            네이버가 서버 IP를 차단하기 때문에, 매물 검색은
+            매물 검색은 <b>브라우저 확장</b>을 통해
             <br />
-            <b>브라우저 확장</b>이 이 PC(내 인터넷)로 대신 요청해 동작합니다.
+            이 PC(내 인터넷)에서 직접 조회하는 방식으로 동작합니다.
             <br />
             크롬·엣지에서 <b>한 번만 설치</b>하면 됩니다. 별도 프로그램 다운로드는 없습니다.
           </p>
@@ -256,7 +256,7 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus, isAdmin,
 
           <div className="nv-agent-reassure">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} width={16} height={16}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            네이버 로그인 정보는 <b>내 브라우저에만</b> 있고 외부 서버로 전송되지 않습니다. 확장은 네이버 부동산 외 다른 사이트에 접근하지 않습니다.
+            로그인 정보는 <b>내 브라우저에만</b> 있고 외부 서버로 전송되지 않습니다. 확장은 매물 검색에 필요한 사이트 외에는 접근하지 않습니다.
           </div>
         </div>
       </div>
@@ -280,14 +280,14 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus, isAdmin,
         {!cookieReady && !loginHintDismissed && (
           <div className="nv-bearer-warn nv-bearer-warn--action">
             <div className="nv-bearer-warn-text">
-              네이버 <b>로그인 없이도 검색됩니다.</b> 검색이 자주 막히거나(429) 빌라·단독 결과가 비면 네이버에 로그인해 보세요(선택).
+              <b>로그인 없이도 검색됩니다.</b> 검색이 자주 막히거나(429) 빌라·단독 결과가 비면 매물 사이트에 로그인해 보세요(선택).
             </div>
             <button
               className="nv-bearer-relogin-btn"
               onClick={triggerLogin}
               disabled={loginLoading}
             >
-              {loginLoading ? '로그인 중…' : '네이버 로그인'}
+              {loginLoading ? '로그인 중…' : '매물 사이트 로그인'}
             </button>
             <button
               className="nv-bearer-relogin-btn"
@@ -306,7 +306,7 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus, isAdmin,
         {connectionValid === false && (connectionReason === 'expired' || connectionReason === 'no-login') && (
           <div className="nv-bearer-warn nv-bearer-warn--action">
             <div className="nv-bearer-warn-text">
-              네이버 로그인이 만료되었습니다. 다시 로그인하면 연결이 갱신됩니다.
+              로그인이 만료되었습니다. 다시 로그인하면 연결이 갱신됩니다.
             </div>
             <button
               className="nv-bearer-relogin-btn"
@@ -320,7 +320,7 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus, isAdmin,
         {connectionValid === false && connectionReason === 'rate-limited' && (
           <div className="nv-bearer-warn">
             <div className="nv-bearer-warn-text">
-              네이버 요청이 잠시 제한되었습니다(429). 재로그인은 필요 없습니다 — 잠시 후 다시 검색하면 자동으로 재시도됩니다.
+              요청이 잠시 제한되었습니다(429). 재로그인은 필요 없습니다 — 잠시 후 다시 검색하면 자동으로 재시도됩니다.
             </div>
           </div>
         )}

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Estate-OS 매물시세 연결기",
-  "version": "2.0.4",
-  "description": "Estate-OS 웹앱이 사용자 브라우저(주거 IP)로 네이버 부동산 매물을 안전하게 수집하도록 중계합니다.",
+  "version": "2.1.0",
+  "description": "Estate-OS 웹앱의 부동산 매물·시세·리뷰 조회를 사용자 브라우저에서 처리하도록 연결하는 확장입니다.",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -23,7 +23,8 @@
     "tabs"
   ],
   "host_permissions": [
-    "*://*.naver.com/*"
+    "*://*.naver.com/*",
+    "https://hogangnono.com/*"
   ],
   "declarative_net_request": {
     "rule_resources": [
@@ -38,6 +39,8 @@
     {
       "matches": [
         "https://estate-os.vercel.app/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*",
         "http://localhost:5173/*",
         "http://localhost:5174/*",
         "http://127.0.0.1:5173/*",

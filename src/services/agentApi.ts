@@ -6,8 +6,12 @@
 
 import { callExtension, detectExtension } from './extensionBridge';
 
-// 크롬 웹스토어 설치 페이지 — 스토어 등록 후 실제 확장 ID로 교체한다.
+// 크롬 웹스토어 설치 페이지.
+// 아직 스토어 미게시 상태라 자리표시자 URL은 웹스토어 홈으로 리다이렉트된다.
+// 게시 후 VITE_EXTENSION_STORE_URL 환경변수(또는 아래 기본값)를
+// 실제 상세 페이지(https://chromewebstore.google.com/detail/<slug>/<확장ID>)로 교체할 것.
 export const EXTENSION_STORE_URL =
+  (import.meta.env.VITE_EXTENSION_STORE_URL as string | undefined) ??
   'https://chromewebstore.google.com/detail/estate-os-connector';
 
 export type AgentStatus = 'unknown' | 'running' | 'offline';
@@ -91,12 +95,6 @@ export async function getCookieStatus(): Promise<CookieStatus> {
   }
 }
 
-// 확장은 브라우저에서 실행되므로 "자동 실행"이라는 개념이 없다.
-// 미설치 시 스토어 페이지를 새 탭으로 연다.
-export function tryLaunchAgent(): void {
-  window.open(EXTENSION_STORE_URL, '_blank', 'noreferrer');
-}
-
 // ── 연결 유효성 검증 ────────────────────────────────────────
 // 중요: 429(rate limit)는 "쿠키 만료"가 아니다. 재로그인으로 안 풀린다.
 // 401/403(expired)과 429(rate-limited)를 반드시 구분해 호출부가 올바르게 안내하게 한다.
@@ -136,6 +134,6 @@ export async function startNaverLogin(): Promise<void> {
     190_000,
   );
   if (!res?.loggedIn) {
-    throw new Error(res?.error ?? '네이버 로그인이 완료되지 않았습니다. 다시 시도해 주세요.');
+    throw new Error(res?.error ?? '로그인이 완료되지 않았습니다. 다시 시도해 주세요.');
   }
 }
