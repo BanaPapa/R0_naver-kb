@@ -42,9 +42,6 @@ const GLOSSARY: Record<string, string> = {
   jeonseRatio: '매매가 대비 전세가 비율(%). 높을수록 매매가 대비 전세 부담이 큼.',
   saleForecast: '중개업소 설문 기반 전망지수. 100을 넘으면 매매가격 상승 전망 우세.',
   jeonseForecast: '중개업소 설문 기반 전망지수. 100을 넘으면 전세가격 상승 전망 우세.',
-  medianSale: '아파트 중위 매매가(만원/호). 가격순 정중앙 값으로 평균보다 이상치 왜곡이 적음.',
-  medianJeonse: '아파트 중위 전세가(만원/호).',
-  leading50: 'KB 선도아파트 50지수. 시가총액 상위 50개 대단지의 가격지수 — 시장 전체에 선행하는 경향.',
 };
 
 const MAX_CHARTS = 4; // A4 한 장 유지를 위한 상한

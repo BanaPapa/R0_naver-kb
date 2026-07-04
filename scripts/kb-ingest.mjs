@@ -252,61 +252,6 @@ function assemble(metricSeries /* { metric: {series,dates} } */, { omitEmptyMetr
   return { dates, data };
 }
 
-// ── 월간: 중위가격 시트(43·44) — 지역 그룹 = 종합(라벨 열)|아파트|단독|연립 ──
-// 아파트 열(라벨 열 +1)만 추출. 상위 25지역뿐이라 regionPath 는 "전국>{지역}".
-// 반환 형태는 parseMonthlyHierarchy 와 동일.
-function parseMedianApt(wb, sheetName) {
-  const rows = sheetRows(wb, sheetName);
-  const h1 = rows[1] ?? [];
-  const h2 = rows[2] ?? [];
-  const cols = [];
-  const order = [];
-  for (let c = 1; c < h1.length; c++) {
-    const label = canon(normalizeLabel(h1[c]));
-    if (!label) continue;
-    if (normalizeLabel(h2[c + 1]) !== '아파트') continue; // 그룹 폭이 달라도 아파트 열만 신뢰
-    const path = label === '전국' ? '전국' : `전국>${label}`;
-    cols.push({ col: c + 1, path });
-    if (!order.includes(path)) order.push(path);
-  }
-  const series = new Map();
-  const dates = new Set();
-  const dateFor = createMonthAxis(sheetName);
-  for (let r = 3; r < rows.length; r++) {
-    const row = rows[r] ?? [];
-    if (!cols.some(({ col }) => { const v = num(row[col]); return v !== null && v !== 0; })) continue;
-    const date = dateFor(row[0]);
-    if (!date) continue;
-    dates.add(date);
-    for (const { col, path } of cols) {
-      const v = num(row[col]);
-      if (v === null || v === 0) continue; // 가격 0 = 미조사 자리표시자
-      let m = series.get(path);
-      if (!m) series.set(path, (m = new Map()));
-      if (!m.has(date)) m.set(date, v);
-    }
-  }
-  return { series, dates, order };
-}
-
-// ── 월간: 선도아파트50지수(시트 16) — 지역 없음(전국 단일), B열이 지수 ──
-function parseLeading50(wb, sheetName) {
-  const rows = sheetRows(wb, sheetName);
-  const series = new Map([['전국', new Map()]]);
-  const dates = new Set();
-  const dateFor = createMonthAxis(sheetName);
-  for (let r = 2; r < rows.length; r++) {
-    const row = rows[r] ?? [];
-    const v = num(row[1]);
-    if (v === null || v === 0) continue; // 값 없는 행은 날짜 축도 전진 금지
-    const date = dateFor(row[0]);
-    if (!date) continue;
-    dates.add(date);
-    series.get('전국').set(date, v);
-  }
-  return { series, dates, order: ['전국'] };
-}
-
 // ── 기존 산출물과 diff 리포트 ─────────────────────────────────
 function diffReport(name, next, outFile) {
   console.log(`\n── ${name}`);
@@ -375,16 +320,12 @@ const weeklyTrade = assemble({
   jeonseActivity: parseGrouped(wbW, '8.전세거래활발', 2, 'serial'),
 });
 
-// 3) kb-monthly.json — 계층형 아파트 시세·시장(2·6·28·47·48)
-//    + 중위 아파트가(43·44) + 선도50(16). 아파트 전용 — 종합/단독/연립 시트는 다루지 않는다.
+// 3) kb-monthly.json — 계층형 아파트 시세·시장(2·6·28·47·48). 아파트 전용.
 const mSale = parseMonthlyHierarchy(wbM, '2.매매APT');
 const mJeonse = parseMonthlyHierarchy(wbM, '6.전세APT');
 const mRatio = parseMonthlyHierarchy(wbM, '28.아파트매매전세비');
 const mAvgSale = parseMonthlyHierarchy(wbM, '47.㎡당아파트평균매매');
 const mAvgJeonse = parseMonthlyHierarchy(wbM, '48.㎡당아파트평균전세');
-const mMedianSale = parseMedianApt(wbM, '43.중위매매');
-const mMedianJeonse = parseMedianApt(wbM, '44.중위전세');
-const mLeading = parseLeading50(wbM, '16.선도50');
 const monthly = assemble(
   {
     saleAptIndex: mSale,
@@ -392,18 +333,13 @@ const monthly = assemble(
     aptSaleJeonseRatio: mRatio,
     aptAvgSalePerM2: mAvgSale,
     aptAvgJeonsePerM2: mAvgJeonse,
-    // 중위 아파트 가격 (만원/호, 상위 25지역)
-    medianAptSale: mMedianSale,
-    medianAptJeonse: mMedianJeonse,
-    // KB 선도아파트 50지수 (전국 단일)
-    leading50Index: mLeading,
   },
   { omitEmptyMetrics: true },
 );
 // 지역 메타(트리): 시트 등장 순서 유지, 데이터 있는 경로만
 {
   const orderAll = [];
-  for (const src of [mSale, mJeonse, mRatio, mAvgSale, mAvgJeonse, mMedianSale, mMedianJeonse])
+  for (const src of [mSale, mJeonse, mRatio, mAvgSale, mAvgJeonse])
     for (const p of src.order) if (!orderAll.includes(p)) orderAll.push(p);
   monthly.regions = orderAll
     .filter(p => monthly.data[p])

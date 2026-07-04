@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { monthlyLocal, monthlyTradeLocal, monthlyForecastLocal } from '../../entities/monthly-data';
-import type { MonthlyPriceRegion, MonthlyMarketRegion, MonthlyForecastRegion, TimeseriesPoint } from '../../entities/monthly-data';
+import type { MonthlyPriceRegion, MonthlyMarketRegion, MonthlyForecastRegion } from '../../entities/monthly-data';
 import type { WeeklyDataRow } from '../../entities/kb-data';
 import { DEFAULT_CHART_OPTIONS, type ChartOptions } from '../../shared/config';
 
@@ -46,9 +46,8 @@ interface MonthlyStore {
   tradeLoading: boolean;
 
   // ── 월간 시장지표 상태 (월간 전용) ──────────────────────────────────
-  marketData: MonthlyMarketRegion[]; // ㎡당 평균 매매/전세가 + 중위가
+  marketData: MonthlyMarketRegion[]; // ㎡당 평균 매매/전세가
   forecastData: MonthlyForecastRegion[]; // KB 매매/전세 전망지수
-  leading50: TimeseriesPoint[]; // KB 선도아파트 50지수 (전국 단일)
   marketLoading: boolean;
 
   // ── 액션 ────────────────────────────────────────────────────────
@@ -113,7 +112,6 @@ export const useMonthlyStore = create<MonthlyStore>()(
 
   marketData: [],
   forecastData: [],
-  leading50: [],
   marketLoading: false,
 
   setMode: mode => {
@@ -273,12 +271,11 @@ export const useMonthlyStore = create<MonthlyStore>()(
     }
     set({ marketLoading: true });
     try {
-      const [market, forecast, leading50] = await Promise.all([
+      const [market, forecast] = await Promise.all([
         monthlyLocal.getMarketData(selectedRegions),
         monthlyForecastLocal.getForecastData(selectedRegions),
-        monthlyLocal.getLeading50(),
       ]);
-      set({ marketData: market, forecastData: forecast, leading50, marketLoading: false });
+      set({ marketData: market, forecastData: forecast, marketLoading: false });
     } catch {
       set({ marketLoading: false });
     }

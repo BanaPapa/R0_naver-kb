@@ -57,8 +57,6 @@ export interface MonthlyMarketRegion {
   fallback: boolean;
   aptAvgSalePerM2: TimeseriesPoint[]; // ㎡당 아파트 평균 매매가(만원/㎡)
   aptAvgJeonsePerM2: TimeseriesPoint[]; // ㎡당 아파트 평균 전세가(만원/㎡)
-  medianAptSale: TimeseriesPoint[]; // APT 중위 매매가(만원/호, 상위지역만 — 하위는 폴백)
-  medianAptJeonse: TimeseriesPoint[]; // APT 중위 전세가(만원/호)
 }
 
 // 전망지표 — 선택 지역별 KB 매매/전세 가격 전망지수(0~200, 100 중립). 대지역/집계만 제공.
