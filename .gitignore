@@ -6,3 +6,6 @@ dist/
 .superpowers/
 # KB 분석 브릿지 런타임 산출물(요청/응답/프로바이더 자격증명) — 절대 커밋 금지
 .analysis/
+data-src/
+logs/
+.env.kb-publish

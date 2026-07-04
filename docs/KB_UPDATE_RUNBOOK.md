@@ -1,9 +1,43 @@
 # KB 시계열 데이터 갱신 런북
 
 주간(매주 금요일 발표)·월간(매월 말 발표) KB 시계열을 앱에 반영하는 절차.
-전체 소요: 약 5분. 데이터 구조 배경은 `docs/KB_TIMESERIES_DATA_REPORT.md` 참고.
+데이터 구조 배경은 `docs/KB_TIMESERIES_DATA_REPORT.md` 참고.
 
-## 절차
+## ⚡ 완전 자동 (기본 — 설정돼 있음)
+
+Windows 작업 스케줄러 `KB-Timeseries-AutoUpdate` 가 **매일 10:30**에
+`scripts/kb-update.cmd` 를 실행한다. 스크립트는:
+
+1. KB 통계 API(`api.kbland.kr/land-extra/statistics/reference`, 인증 불필요)로 최신
+   주간/월간 시계열 파일명을 확인
+2. 새 파일이면 `getfiledown` 엔드포인트로 다운로드(`data-src/`, git 미추적)
+3. `kb-ingest.mjs` 로 public/data/*.json 재생성 (diff·무결성 검증 포함)
+4. `.env.kb-publish` 가 있으면 Supabase 발행까지
+5. 같은 파일이면 아무것도 안 함(멱등) — 로그: `logs/kb-update.log`
+
+```powershell
+# 수동 실행/점검
+node scripts/kb-update.mjs            # 확인+다운로드+인제스트
+node scripts/kb-update.mjs --check    # 새 파일 여부만 (exit 2 = 갱신 있음)
+node scripts/kb-update.mjs --force    # 강제 재다운로드
+schtasks /Query /TN "KB-Timeseries-AutoUpdate" /FO LIST   # 스케줄 상태
+```
+
+**배포(Supabase)까지 자동으로 하려면** 프로젝트 루트에 `.env.kb-publish` 생성(git 미추적):
+
+```
+SUPABASE_URL=https://<project>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<service_role key>
+```
+
+없으면 로컬 public/data 만 갱신되고 발행은 건너뛴다(로그에 표시).
+`public/data` 변경분의 git 커밋은 자동화하지 않는다 — 확인 후 직접 커밋.
+
+주의: PC가 꺼져 있으면 그 날 실행은 건너뛴다(다음 날 따라잡음). 헤더의 신선도
+뱃지(⚠)가 지연 감지 백업 역할을 한다. KB가 API 구조를 바꾸면 스크립트가 명확한
+에러로 중단되니 로그를 확인할 것.
+
+## 수동 절차 (자동화 실패 시 폴백)
 
 ### 1. 엑셀 다운로드
 
@@ -50,9 +84,10 @@ node scripts/kb-publish-bundles.mjs
 
 ## 자동화 메모
 
-- KB 사이트 다운로드 자동화는 로그인·약관 문제로 보류(수동 유지). 대신 앱에 데이터
-  기준일 표시를 붙여 갱신 누락을 눈에 띄게 만드는 것이 P2 과제로 계획돼 있음
-  (`docs/PROMPT_kb_analysis_upgrade.md` P2-3).
+- ~~KB 사이트 다운로드 자동화는 로그인·약관 문제로 보류~~ → **2026-07 완전 자동화됨.**
+  조사 결과 통계 API·파일 다운로드 모두 인증 불필요(Referer만)로 확인.
+  API: `GET /land-extra/statistics/reference?주월간구분={0|1}&기준년월시작일=…&기준년월종료일=…`
+  다운로드: `GET /land-extra/statistics/getfiledown?urlpath={파일경로}/{파일명}&filename={원본파일명}`
 - 인제스트는 결정적(같은 입력 → 같은 출력)이므로 같은 파일로 재실행해도 안전하다.
 
 ## 알려진 원본 데이터 특성 (버그 아님)
