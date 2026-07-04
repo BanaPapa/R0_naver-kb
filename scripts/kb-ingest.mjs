@@ -143,7 +143,8 @@ function parseGrouped(wb, sheetName, indexAt, dateKind) {
     cols.push({ col: c + indexAt, key: canon(label) });
   }
 
-  // 데이터 행 순회 — 주간은 A열 시리얼, 월간은 날짜 상태 머신
+  // 데이터 행 순회 — 주간은 A열 시리얼, 월간은 날짜 상태 머신.
+  // 값이 하나도 없는 행은 날짜 축을 전진시키지 않는다(시트 하단의 차트용 요약 블록 방어).
   const series = new Map();
   const dates = new Set();
   const dateFor = createMonthAxis(sheetName);
@@ -153,6 +154,7 @@ function parseGrouped(wb, sheetName, indexAt, dateKind) {
       if (!isSerialDate(row[0])) continue;
       pushRow(serialToIso(row[0]), row);
     } else {
+      if (!cols.some(({ col }) => num(row[col]) !== null)) continue;
       const date = dateFor(row[0]);
       if (date) pushRow(date, row);
     }
@@ -196,17 +198,20 @@ function parseMonthlyHierarchy(wb, sheetName) {
     if (!order.includes(path)) order.push(path);
   }
 
+  // 지수·비율·가격 시트에서 0은 존재할 수 없는 값 — KB가 미조사 지역에 채워둔
+  // 자리표시자이므로 null 처리한다(예: 단독/연립 시군구 열의 0).
   const series = new Map();
   const dates = new Set();
   const dateFor = createMonthAxis(sheetName);
   for (let r = 3; r < rows.length; r++) {
     const row = rows[r] ?? [];
+    if (!cols.some(({ col }) => { const v = num(row[col]); return v !== null && v !== 0; })) continue;
     const date = dateFor(row[0]);
     if (!date) continue;
     dates.add(date);
     for (const { col, path } of cols) {
       const v = num(row[col]);
-      if (v === null) continue;
+      if (v === null || v === 0) continue;
       let mm = series.get(path);
       if (!mm) series.set(path, (mm = new Map()));
       if (!mm.has(date)) mm.set(date, v);
@@ -216,7 +221,10 @@ function parseMonthlyHierarchy(wb, sheetName) {
 }
 
 // ── 조립: 지표별 시리즈 맵 → { dates, data } ─────────────────────
-function assemble(metricSeries /* { metric: {series,dates} } */) {
+// omitEmptyMetrics: 지역별로 전부 null인 지표 배열을 아예 생략(월간 — 클라이언트가
+// Partial 로 읽고 없는 지표는 상위 폴백. 좁은 축 지표의 용량 낭비 방지).
+// 주간은 로더가 4개 지표 배열을 모두 기대하므로 생략하지 않는다.
+function assemble(metricSeries /* { metric: {series,dates} } */, { omitEmptyMetrics = false } = {}) {
   const dateSet = new Set();
   for (const { dates } of Object.values(metricSeries)) for (const d of dates) dateSet.add(d);
   const dates = [...dateSet].sort();
@@ -230,15 +238,73 @@ function assemble(metricSeries /* { metric: {series,dates} } */) {
     let any = false;
     for (const [metric, { series }] of Object.entries(metricSeries)) {
       const m = series.get(key);
-      entry[metric] = dates.map(d => {
+      let metricAny = false;
+      const arr = dates.map(d => {
         const v = m?.get(d);
-        if (v != null) any = true;
+        if (v != null) metricAny = true;
         return v ?? null;
       });
+      if (metricAny) any = true;
+      if (metricAny || !omitEmptyMetrics) entry[metric] = arr;
     }
     if (any) data[key] = entry; // 전부 null(자리표시자 열)은 제외 — 값이 생기면 자동 포함
   }
   return { dates, data };
+}
+
+// ── 월간: 중위가격 시트(43·44) — 지역 그룹 = 종합(라벨 열)|아파트|단독|연립 ──
+// 아파트 열(라벨 열 +1)만 추출. 상위 25지역뿐이라 regionPath 는 "전국>{지역}".
+// 반환 형태는 parseMonthlyHierarchy 와 동일.
+function parseMedianApt(wb, sheetName) {
+  const rows = sheetRows(wb, sheetName);
+  const h1 = rows[1] ?? [];
+  const h2 = rows[2] ?? [];
+  const cols = [];
+  const order = [];
+  for (let c = 1; c < h1.length; c++) {
+    const label = canon(normalizeLabel(h1[c]));
+    if (!label) continue;
+    if (normalizeLabel(h2[c + 1]) !== '아파트') continue; // 그룹 폭이 달라도 아파트 열만 신뢰
+    const path = label === '전국' ? '전국' : `전국>${label}`;
+    cols.push({ col: c + 1, path });
+    if (!order.includes(path)) order.push(path);
+  }
+  const series = new Map();
+  const dates = new Set();
+  const dateFor = createMonthAxis(sheetName);
+  for (let r = 3; r < rows.length; r++) {
+    const row = rows[r] ?? [];
+    if (!cols.some(({ col }) => { const v = num(row[col]); return v !== null && v !== 0; })) continue;
+    const date = dateFor(row[0]);
+    if (!date) continue;
+    dates.add(date);
+    for (const { col, path } of cols) {
+      const v = num(row[col]);
+      if (v === null || v === 0) continue; // 가격 0 = 미조사 자리표시자
+      let m = series.get(path);
+      if (!m) series.set(path, (m = new Map()));
+      if (!m.has(date)) m.set(date, v);
+    }
+  }
+  return { series, dates, order };
+}
+
+// ── 월간: 선도아파트50지수(시트 16) — 지역 없음(전국 단일), B열이 지수 ──
+function parseLeading50(wb, sheetName) {
+  const rows = sheetRows(wb, sheetName);
+  const series = new Map([['전국', new Map()]]);
+  const dates = new Set();
+  const dateFor = createMonthAxis(sheetName);
+  for (let r = 2; r < rows.length; r++) {
+    const row = rows[r] ?? [];
+    const v = num(row[1]);
+    if (v === null || v === 0) continue; // 값 없는 행은 날짜 축도 전진 금지
+    const date = dateFor(row[0]);
+    if (!date) continue;
+    dates.add(date);
+    series.get('전국').set(date, v);
+  }
+  return { series, dates, order: ['전국'] };
 }
 
 // ── 기존 산출물과 diff 리포트 ─────────────────────────────────
@@ -309,23 +375,48 @@ const weeklyTrade = assemble({
   jeonseActivity: parseGrouped(wbW, '8.전세거래활발', 2, 'serial'),
 });
 
-// 3) kb-monthly.json — 시트 2·6·28·47·48 (계층형)
+// 3) kb-monthly.json — 계층형 시세·시장(2·6·28·47·48) + 주택유형(1·3·4·5·7·8)
+//    + 중위 아파트가(43·44) + 선도50(16)
 const mSale = parseMonthlyHierarchy(wbM, '2.매매APT');
 const mJeonse = parseMonthlyHierarchy(wbM, '6.전세APT');
 const mRatio = parseMonthlyHierarchy(wbM, '28.아파트매매전세비');
 const mAvgSale = parseMonthlyHierarchy(wbM, '47.㎡당아파트평균매매');
 const mAvgJeonse = parseMonthlyHierarchy(wbM, '48.㎡당아파트평균전세');
-const monthly = assemble({
-  saleAptIndex: mSale,
-  jeonseAptIndex: mJeonse,
-  aptSaleJeonseRatio: mRatio,
-  aptAvgSalePerM2: mAvgSale,
-  aptAvgJeonsePerM2: mAvgJeonse,
-});
+const mSaleTotal = parseMonthlyHierarchy(wbM, '1.매매종합');
+const mSaleDet = parseMonthlyHierarchy(wbM, '3.매매단독');
+const mSaleRow = parseMonthlyHierarchy(wbM, '4.매매연립');
+const mJeonseTotal = parseMonthlyHierarchy(wbM, '5.전세종합');
+const mJeonseDet = parseMonthlyHierarchy(wbM, '7.전세단독');
+const mJeonseRow = parseMonthlyHierarchy(wbM, '8.전세연립');
+const mMedianSale = parseMedianApt(wbM, '43.중위매매');
+const mMedianJeonse = parseMedianApt(wbM, '44.중위전세');
+const mLeading = parseLeading50(wbM, '16.선도50');
+const monthly = assemble(
+  {
+    saleAptIndex: mSale,
+    jeonseAptIndex: mJeonse,
+    aptSaleJeonseRatio: mRatio,
+    aptAvgSalePerM2: mAvgSale,
+    aptAvgJeonsePerM2: mAvgJeonse,
+    // 주택유형별 지수 (P1-①) — 종합/단독/연립
+    saleTotalIndex: mSaleTotal,
+    saleDetachedIndex: mSaleDet,
+    saleRowIndex: mSaleRow,
+    jeonseTotalIndex: mJeonseTotal,
+    jeonseDetachedIndex: mJeonseDet,
+    jeonseRowIndex: mJeonseRow,
+    // 중위 아파트 가격 (P1-②, 만원/호, 상위 25지역)
+    medianAptSale: mMedianSale,
+    medianAptJeonse: mMedianJeonse,
+    // KB 선도아파트 50지수 (P1-③, 전국 단일)
+    leading50Index: mLeading,
+  },
+  { omitEmptyMetrics: true },
+);
 // 지역 메타(트리): 시트 등장 순서 유지, 데이터 있는 경로만
 {
   const orderAll = [];
-  for (const src of [mSale, mJeonse, mRatio, mAvgSale, mAvgJeonse])
+  for (const src of [mSale, mJeonse, mRatio, mAvgSale, mAvgJeonse, mSaleTotal, mSaleDet, mSaleRow, mJeonseTotal, mJeonseDet, mJeonseRow, mMedianSale, mMedianJeonse])
     for (const p of src.order) if (!orderAll.includes(p)) orderAll.push(p);
   monthly.regions = orderAll
     .filter(p => monthly.data[p])

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { monthlyLocal, monthlyTradeLocal, monthlyForecastLocal } from '../../entities/monthly-data';
-import type { MonthlyPriceRegion, MonthlyMarketRegion, MonthlyForecastRegion } from '../../entities/monthly-data';
+import type { MonthlyPriceRegion, MonthlyMarketRegion, MonthlyForecastRegion, TimeseriesPoint, HouseType } from '../../entities/monthly-data';
 import type { WeeklyDataRow } from '../../entities/kb-data';
 import { DEFAULT_CHART_OPTIONS, type ChartOptions } from '../../shared/config';
 
@@ -39,6 +39,7 @@ interface MonthlyStore {
   priceData: MonthlyPriceRegion[];
   priceLoading: boolean;
   priceError: string | null;
+  houseType: HouseType; // 월간 시세지표 주택유형 (아파트/종합/단독/연립)
 
   // ── 월간 거래지표 상태 (주간 store와 동일 구조) ──────────────────────
   allTradeRegions: string[]; // 거래지표 제공 지역(대지역/집계만)
@@ -46,8 +47,9 @@ interface MonthlyStore {
   tradeLoading: boolean;
 
   // ── 월간 시장지표 상태 (월간 전용) ──────────────────────────────────
-  marketData: MonthlyMarketRegion[]; // ㎡당 평균 매매/전세가
+  marketData: MonthlyMarketRegion[]; // ㎡당 평균 매매/전세가 + 중위가
   forecastData: MonthlyForecastRegion[]; // KB 매매/전세 전망지수
+  leading50: TimeseriesPoint[]; // KB 선도아파트 50지수 (전국 단일)
   marketLoading: boolean;
 
   // ── 액션 ────────────────────────────────────────────────────────
@@ -72,6 +74,7 @@ interface MonthlyStore {
   setFromDate: (date: string) => void;
   setToDate: (date: string) => void;
   setBaseDate: (date: string) => void;
+  setHouseType: (t: HouseType) => void;
   loadDates: () => Promise<void>;
   loadPriceData: () => Promise<void>;
   loadTradeRegions: () => Promise<void>;
@@ -105,6 +108,7 @@ export const useMonthlyStore = create<MonthlyStore>()(
   priceData: [],
   priceLoading: false,
   priceError: null,
+  houseType: 'apt',
 
   allTradeRegions: [],
   tradeData: [],
@@ -112,6 +116,7 @@ export const useMonthlyStore = create<MonthlyStore>()(
 
   marketData: [],
   forecastData: [],
+  leading50: [],
   marketLoading: false,
 
   setMode: mode => {
@@ -222,15 +227,23 @@ export const useMonthlyStore = create<MonthlyStore>()(
     }
   },
 
+  // 주택유형 변경 → 시세 데이터 재로드 (지수 Y축 override는 자동 재계산되도록 해제)
+  setHouseType: t => {
+    if (get().houseType === t) return;
+    set({ houseType: t });
+    get().clearYRanges('mp:');
+    void get().loadPriceData();
+  },
+
   loadPriceData: async () => {
-    const { selectedRegions } = get();
+    const { selectedRegions, houseType } = get();
     if (selectedRegions.length === 0) {
       set({ priceData: [] });
       return;
     }
     set({ priceLoading: true, priceError: null });
     try {
-      const data = await monthlyLocal.getPriceData(selectedRegions);
+      const data = await monthlyLocal.getPriceData(selectedRegions, houseType);
       set({ priceData: data, priceLoading: false });
     } catch (e) {
       set({
@@ -271,11 +284,12 @@ export const useMonthlyStore = create<MonthlyStore>()(
     }
     set({ marketLoading: true });
     try {
-      const [market, forecast] = await Promise.all([
+      const [market, forecast, leading50] = await Promise.all([
         monthlyLocal.getMarketData(selectedRegions),
         monthlyForecastLocal.getForecastData(selectedRegions),
+        monthlyLocal.getLeading50(),
       ]);
-      set({ marketData: market, forecastData: forecast, marketLoading: false });
+      set({ marketData: market, forecastData: forecast, leading50, marketLoading: false });
     } catch {
       set({ marketLoading: false });
     }
@@ -298,6 +312,7 @@ export const useMonthlyStore = create<MonthlyStore>()(
         fromDate: s.fromDate,
         toDate: s.toDate,
         baseDate: s.baseDate,
+        houseType: s.houseType,
       }),
     },
   ),

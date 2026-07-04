@@ -12,6 +12,7 @@ import type {
   RegionCompareResult,
   MonthlyPriceRegion,
   MonthlyMarketRegion,
+  HouseType,
 } from '../model/monthly-data.types';
 import { loadKbJson } from '../../../shared/lib/kb-source/loader';
 
@@ -60,6 +61,14 @@ function keyName(name: string): string {
 export interface MonthlyRegionLookup {
   resolve: (key: string) => string | undefined;
 }
+
+// 주택유형 → kb-monthly.json 지표 필드명.
+const HOUSE_TYPE_METRICS: Record<HouseType, { sale: string; jeonse: string }> = {
+  apt: { sale: 'saleAptIndex', jeonse: 'jeonseAptIndex' },
+  total: { sale: 'saleTotalIndex', jeonse: 'jeonseTotalIndex' },
+  detached: { sale: 'saleDetachedIndex', jeonse: 'jeonseDetachedIndex' },
+  row: { sale: 'saleRowIndex', jeonse: 'jeonseRowIndex' },
+};
 
 // 선택 키(주간 형식) → 월간 regionPath 해석. 데이터 없으면 undefined.
 function resolveKey(L: Loaded, key: string): string | undefined {
@@ -216,17 +225,19 @@ export const monthlyLocal = {
     return L.json.dates;
   },
 
-  // 시세지표(주간 동일 구조): 선택 키들에 대해 매매/전세 아파트 지수 시계열을 반환.
+  // 시세지표(주간 동일 구조): 선택 키들에 대해 매매/전세 지수 시계열을 반환.
+  // houseType으로 주택유형(아파트/종합/단독/연립) 선택 — 반환 필드명은 호환을 위해 유지.
   // 키 → regionPath 해석 후 metric별 폴백 포함 시계열. 데이터 없는 키는 빈 시계열.
-  async getPriceData(keys: string[]): Promise<MonthlyPriceRegion[]> {
+  async getPriceData(keys: string[], houseType: HouseType = 'apt'): Promise<MonthlyPriceRegion[]> {
     const L = await ensureLoaded();
+    const metric = HOUSE_TYPE_METRICS[houseType];
     return keys.map(key => {
       const path = resolveKey(L, key);
       if (!path) {
         return { key, resolvedRegion: null, fallback: false, saleAptIndex: [], jeonseAptIndex: [] };
       }
-      const sale = seriesFor(L, path, 'saleAptIndex');
-      const jeonse = seriesFor(L, path, 'jeonseAptIndex');
+      const sale = seriesFor(L, path, metric.sale);
+      const jeonse = seriesFor(L, path, metric.jeonse);
       const resolved = sale.resolved ?? jeonse.resolved;
       return {
         key,
@@ -243,17 +254,22 @@ export const monthlyLocal = {
     return regionPaths.map(p => seriesFor(L, p, metric));
   },
 
-  // 시장지표(시세지표와 동일 구조): 선택 키들에 대해 ㎡당 평균 매매/전세가 시계열을 반환.
-  // 중지역까지 제공하며, 데이터 없는 지역은 metric별 폴백(상위)으로 채운다.
+  // 시장지표(시세지표와 동일 구조): 선택 키들에 대해 ㎡당 평균 매매/전세가와
+  // APT 중위 매매/전세가(상위지역 제공 — 하위 선택 시 상위 폴백) 시계열을 반환.
   async getMarketData(keys: string[]): Promise<MonthlyMarketRegion[]> {
     const L = await ensureLoaded();
     return keys.map(key => {
       const path = resolveKey(L, key);
       if (!path) {
-        return { key, resolvedRegion: null, fallback: false, aptAvgSalePerM2: [], aptAvgJeonsePerM2: [] };
+        return {
+          key, resolvedRegion: null, fallback: false,
+          aptAvgSalePerM2: [], aptAvgJeonsePerM2: [], medianAptSale: [], medianAptJeonse: [],
+        };
       }
       const sale = seriesFor(L, path, 'aptAvgSalePerM2');
       const jeonse = seriesFor(L, path, 'aptAvgJeonsePerM2');
+      const medianSale = seriesFor(L, path, 'medianAptSale');
+      const medianJeonse = seriesFor(L, path, 'medianAptJeonse');
       const resolved = sale.resolved ?? jeonse.resolved;
       return {
         key,
@@ -261,8 +277,22 @@ export const monthlyLocal = {
         fallback: !!resolved?.fallback,
         aptAvgSalePerM2: sale.data,
         aptAvgJeonsePerM2: jeonse.data,
+        medianAptSale: medianSale.data,
+        medianAptJeonse: medianJeonse.data,
       };
     });
+  },
+
+  // KB 선도아파트 50지수 — 전국 단일 시계열(지역 무관).
+  async getLeading50(): Promise<TimeseriesPoint[]> {
+    const L = await ensureLoaded();
+    const arr = L.json.data['전국']?.['leading50Index'] ?? [];
+    const out: TimeseriesPoint[] = [];
+    for (let i = 0; i < L.json.dates.length; i++) {
+      const v = arr[i];
+      if (v != null) out.push({ date: L.json.dates[i]!, value: v });
+    }
+    return out;
   },
 
   async getRegionCompare(

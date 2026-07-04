@@ -14,7 +14,8 @@ import { monthlyLocal, monthlyTradeLocal, monthlyForecastLocal } from '../../../
 import { buildChartData, nearestDateIndex, type ChartRow } from '../../../widgets/chart-dashboard/chart-primitives';
 import type { MetricKey } from '../../../shared/config';
 import type { WeeklyDataRow } from '../../../entities/kb-data';
-import type { MonthlyPriceRegion, MonthlyMarketRegion, MonthlyForecastRegion } from '../../../entities/monthly-data';
+import { HOUSE_TYPE_LABEL } from '../../../entities/monthly-data';
+import type { MonthlyPriceRegion, MonthlyMarketRegion, MonthlyForecastRegion, TimeseriesPoint } from '../../../entities/monthly-data';
 import type {
   AnalysisRequest,
   AnalysisDataset,
@@ -135,25 +136,32 @@ function monthlyIndexRows(price: MonthlyPriceRegion[], keys: string[], field: 's
   });
 }
 
-function monthlyPriceDatasets(priceData: MonthlyPriceRegion[], regions: string[], from: string, to: string, baseDate: string): AnalysisDataset[] {
+function monthlyPriceDatasets(priceData: MonthlyPriceRegion[], regions: string[], from: string, to: string, baseDate: string, typeLabel = '아파트'): AnalysisDataset[] {
   const saleIdx = monthlyIndexRows(priceData, regions, 'saleAptIndex', baseDate);
   const jeonseIdx = monthlyIndexRows(priceData, regions, 'jeonseAptIndex', baseDate);
   return compact([
-    makeDataset('monthly-price', 'saleIndex', '아파트 매매가격지수', '', sliceByRegion(saleIdx, regions, from, to)),
-    makeDataset('monthly-price', 'jeonseIndex', '아파트 전세가격지수', '', sliceByRegion(jeonseIdx, regions, from, to)),
+    makeDataset('monthly-price', 'saleIndex', `${typeLabel} 매매가격지수`, '', sliceByRegion(saleIdx, regions, from, to)),
+    makeDataset('monthly-price', 'jeonseIndex', `${typeLabel} 전세가격지수`, '', sliceByRegion(jeonseIdx, regions, from, to)),
     makeDataset('monthly-price', 'saleChange', '매매 증감률(전월대비)', '%', changeByRegion(saleIdx, regions, from, to)),
     makeDataset('monthly-price', 'jeonseChange', '전세 증감률(전월대비)', '%', changeByRegion(jeonseIdx, regions, from, to)),
   ]);
 }
 
-// 단일 필드(평당 환산) → region별 시계열
-function marketField(market: MonthlyMarketRegion[], regions: string[], field: 'aptAvgSalePerM2' | 'aptAvgJeonsePerM2', from: string, to: string): Record<string, SeriesPoint[]> {
+// 단일 필드 → region별 시계열. mul 배수로 단위 환산(㎡당가 → 평당가는 PYEONG, 중위가는 1).
+function marketField(
+  market: MonthlyMarketRegion[],
+  regions: string[],
+  field: 'aptAvgSalePerM2' | 'aptAvgJeonsePerM2' | 'medianAptSale' | 'medianAptJeonse',
+  from: string,
+  to: string,
+  mul = PYEONG,
+): Record<string, SeriesPoint[]> {
   const out: Record<string, SeriesPoint[]> = {};
   for (const m of market) {
     if (!regions.includes(m.key)) continue;
     out[m.key] = m[field]
       .filter(p => p.date >= from && p.date <= to)
-      .map(p => ({ date: p.date, value: p.value == null ? null : p.value * PYEONG }));
+      .map(p => ({ date: p.date, value: p.value == null ? null : p.value * mul }));
   }
   return out;
 }
@@ -183,14 +191,28 @@ function forecastField(forecast: MonthlyForecastRegion[], regions: string[], fie
   return out;
 }
 
-function monthlyMarketDatasets(marketData: MonthlyMarketRegion[], forecastData: MonthlyForecastRegion[], regions: string[], from: string, to: string): AnalysisDataset[] {
+function monthlyMarketDatasets(
+  marketData: MonthlyMarketRegion[],
+  forecastData: MonthlyForecastRegion[],
+  leading50: TimeseriesPoint[],
+  regions: string[],
+  from: string,
+  to: string,
+): AnalysisDataset[] {
+  // 선도50은 전국 단일 시계열 — '전국' 지역 키로 담는다(지역 선택과 무관한 시장 기준선).
+  const leading50ByRegion: Record<string, SeriesPoint[]> = {
+    전국: leading50.filter(p => p.date >= from && p.date <= to).map(p => ({ date: p.date, value: p.value })),
+  };
   return compact([
     makeDataset('monthly-market', 'avgSale', 'APT 평균 매매가', '만원/3.3㎡', marketField(marketData, regions, 'aptAvgSalePerM2', from, to)),
     makeDataset('monthly-market', 'avgJeonse', 'APT 평균 전세가', '만원/3.3㎡', marketField(marketData, regions, 'aptAvgJeonsePerM2', from, to)),
+    makeDataset('monthly-market', 'medianSale', 'APT 중위 매매가', '만원', marketField(marketData, regions, 'medianAptSale', from, to, 1)),
+    makeDataset('monthly-market', 'medianJeonse', 'APT 중위 전세가', '만원', marketField(marketData, regions, 'medianAptJeonse', from, to, 1)),
     makeDataset('monthly-market', 'gap', '매매-전세 가격 격차', '만원/3.3㎡', marketCombine(marketData, regions, (s, je) => (s - je) * PYEONG, from, to)),
     makeDataset('monthly-market', 'jeonseRatio', 'APT 전세가율', '%', marketCombine(marketData, regions, (s, je) => (je / s) * 100, from, to)),
     makeDataset('monthly-market', 'saleForecast', 'KB 매매가격 전망지수', '', forecastField(forecastData, regions, 'saleForecast', from, to)),
     makeDataset('monthly-market', 'jeonseForecast', 'KB 전세가격 전망지수', '', forecastField(forecastData, regions, 'jeonseForecast', from, to)),
+    makeDataset('monthly-market', 'leading50', 'KB 선도아파트 50지수', '', leading50ByRegion),
   ]);
 }
 
@@ -213,7 +235,7 @@ function collectTab(tab: AnalysisTab, regionFilter?: string[]): { datasets: Anal
     }
     case 'monthly-price': {
       const regions = within(monthly.selectedRegions);
-      return { datasets: monthlyPriceDatasets(monthly.priceData, regions, monthly.fromDate, monthly.toDate, monthly.baseDate), from: monthly.fromDate, to: monthly.toDate, regions };
+      return { datasets: monthlyPriceDatasets(monthly.priceData, regions, monthly.fromDate, monthly.toDate, monthly.baseDate, HOUSE_TYPE_LABEL[monthly.houseType]), from: monthly.fromDate, to: monthly.toDate, regions };
     }
     case 'monthly-trade': {
       const regions = within(monthly.selectedRegions);
@@ -221,7 +243,7 @@ function collectTab(tab: AnalysisTab, regionFilter?: string[]): { datasets: Anal
     }
     case 'monthly-market': {
       const regions = within(monthly.selectedRegions);
-      return { datasets: monthlyMarketDatasets(monthly.marketData, monthly.forecastData, regions, monthly.fromDate, monthly.toDate), from: monthly.fromDate, to: monthly.toDate, regions };
+      return { datasets: monthlyMarketDatasets(monthly.marketData, monthly.forecastData, monthly.leading50, regions, monthly.fromDate, monthly.toDate), from: monthly.fromDate, to: monthly.toDate, regions };
     }
   }
 }
@@ -287,13 +309,14 @@ export async function collectFor(params: CollectForParams): Promise<AnalysisRequ
 
   if (regions.length > 0) {
     // 각 탭이 필요로 하는 데이터 소스를 병렬 로드.
-    const [weeklyData, weeklyTrade, monthlyPrice, monthlyTrade, monthlyMarket, monthlyForecast] = await Promise.all([
+    const [weeklyData, weeklyTrade, monthlyPrice, monthlyTrade, monthlyMarket, monthlyForecast, leading50] = await Promise.all([
       tabSet.has('weekly-price') ? weeklyLocal.getWeeklyData(regions, '', '') : Promise.resolve<WeeklyDataRow[]>([]),
       tabSet.has('weekly-trade') ? weeklyTradeLocal.getTradeData(regions) : Promise.resolve<WeeklyDataRow[]>([]),
       tabSet.has('monthly-price') ? monthlyLocal.getPriceData(regions) : Promise.resolve<MonthlyPriceRegion[]>([]),
       tabSet.has('monthly-trade') ? monthlyTradeLocal.getTradeData(regions) : Promise.resolve<WeeklyDataRow[]>([]),
       tabSet.has('monthly-market') ? monthlyLocal.getMarketData(regions) : Promise.resolve<MonthlyMarketRegion[]>([]),
       tabSet.has('monthly-market') ? monthlyForecastLocal.getForecastData(regions) : Promise.resolve<MonthlyForecastRegion[]>([]),
+      tabSet.has('monthly-market') ? monthlyLocal.getLeading50() : Promise.resolve<TimeseriesPoint[]>([]),
     ]);
 
     if (tabSet.has('weekly-price'))
@@ -305,7 +328,7 @@ export async function collectFor(params: CollectForParams): Promise<AnalysisRequ
     if (tabSet.has('monthly-trade'))
       datasets.push(...tradeDatasets('monthly-trade', monthlyTrade, regions, monthlyPeriod.from, monthlyPeriod.to));
     if (tabSet.has('monthly-market'))
-      datasets.push(...monthlyMarketDatasets(monthlyMarket, monthlyForecast, regions, monthlyPeriod.from, monthlyPeriod.to));
+      datasets.push(...monthlyMarketDatasets(monthlyMarket, monthlyForecast, leading50, regions, monthlyPeriod.from, monthlyPeriod.to));
   }
 
   // 데이터가 실제로 들어온 지역만 scope에 표기.

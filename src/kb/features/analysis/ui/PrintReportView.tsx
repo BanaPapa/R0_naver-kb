@@ -42,6 +42,9 @@ const GLOSSARY: Record<string, string> = {
   jeonseRatio: '매매가 대비 전세가 비율(%). 높을수록 매매가 대비 전세 부담이 큼.',
   saleForecast: '중개업소 설문 기반 전망지수. 100을 넘으면 매매가격 상승 전망 우세.',
   jeonseForecast: '중개업소 설문 기반 전망지수. 100을 넘으면 전세가격 상승 전망 우세.',
+  medianSale: '아파트 중위 매매가(만원/호). 가격순 정중앙 값으로 평균보다 이상치 왜곡이 적음.',
+  medianJeonse: '아파트 중위 전세가(만원/호).',
+  leading50: 'KB 선도아파트 50지수. 시가총액 상위 50개 대단지의 가격지수 — 시장 전체에 선행하는 경향.',
 };
 
 const MAX_CHARTS = 4; // A4 한 장 유지를 위한 상한
@@ -159,8 +162,10 @@ export const PrintReportView: React.FC<PrintReportViewProps> = ({ onClose, tabLa
   const color = (key: string) => REGION_COLORS[Math.max(0, regions.indexOf(key)) % REGION_COLORS.length]!;
 
   const metricLabels = Array.from(new Set(datasets.map(d => d.label)));
-  const charts = datasets.slice(0, MAX_CHARTS);
-  const tableRows = datasets.slice(0, MAX_TABLE_ROWS);
+  // 선택 지역과 겹치는 데이터가 있는 데이터셋만 차트·표에 (전국 단일 지표 등은 겹칠 때만)
+  const visible = datasets.filter(d => regions.some(r => d.byRegion[r]));
+  const charts = visible.slice(0, MAX_CHARTS);
+  const tableRows = visible.slice(0, MAX_TABLE_ROWS);
   const glossary = datasets
     .filter((d, i, arr) => GLOSSARY[d.metric] && arr.findIndex(x => x.metric === d.metric) === i)
     .map(d => ({ term: d.label, desc: GLOSSARY[d.metric]! }));
@@ -250,7 +255,7 @@ export const PrintReportView: React.FC<PrintReportViewProps> = ({ onClose, tabLa
                 </div>
               ))}
             </div>
-            {datasets.length > MAX_CHARTS && (
+            {visible.length > MAX_CHARTS && (
               <p className="kbpr-note">지면 관계상 상위 {MAX_CHARTS}개 지표만 차트로 표시했습니다. 나머지는 아래 지표 표를 참고하세요.</p>
             )}
           </>
@@ -309,7 +314,7 @@ export const PrintReportView: React.FC<PrintReportViewProps> = ({ onClose, tabLa
             </table>
             <p className="kbpr-note">
               값은 구간 내 최신값, 괄호 변동은 구간 시작 대비 증감률.
-              {datasets.length > MAX_TABLE_ROWS ? ` (외 ${datasets.length - MAX_TABLE_ROWS}개 지표 생략)` : ''}
+              {visible.length > MAX_TABLE_ROWS ? ` (외 ${visible.length - MAX_TABLE_ROWS}개 지표 생략)` : ''}
             </p>
           </>
         )}

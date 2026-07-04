@@ -10,13 +10,29 @@ import { YAxisControl } from '../weekly-trade-dashboard/YAxisControl';
 const PYEONG = 3.305785;
 const NEUTRAL = 100; // 전망지수 확산지수 중립선
 
-type MarketField = 'aptAvgSalePerM2' | 'aptAvgJeonsePerM2';
+type MarketField = 'aptAvgSalePerM2' | 'aptAvgJeonsePerM2' | 'medianAptSale' | 'medianAptJeonse';
 type ForecastField = 'saleForecast' | 'jeonseForecast';
+
+// 선도50 차트의 고정 dataKey/라벨 — 전국 단일 지수라 지역 선택과 무관.
+const KB50_KEY = 'kb50';
+const KB50_LABELS = { [KB50_KEY]: 'KB 선도아파트50' };
 
 // 차트별 동적 Y축 옵션 — 평균 매매/전세가는 2,000만원 단위 고정, 나머지는 데이터로 산출.
 function marketYOpts(id: string): DynamicYOptions {
   if (id === 'avgSale' || id === 'avgJeonse') return { step: 2000 };
   return {};
+}
+
+// 시장지표 차트 정의. regions/labels 미지정 시 선택 지역을 그대로 사용(선도50만 고정 키).
+interface MarketChartView {
+  id: string;
+  title: string;
+  subtitle?: string;
+  unit: string;
+  referenceValue?: number;
+  data: ChartRow[];
+  regions?: string[];
+  labels?: Record<string, string>;
 }
 
 const INFO: Record<string, string> = {
@@ -28,6 +44,12 @@ const INFO: Record<string, string> = {
     'KB부동산 전세가격 전망지수. 3개월 후 전세가 전망 설문의 확산지수(0~200, 100=중립). 100 초과 = 상승 전망 우세. 전망지수는 대지역만 제공되어, 중지역을 고르면 소속 대지역(시/도) 기준으로 표시된다.',
   gap: '3.3㎡당 평균 매매가 − 평균 전세가 (만원/3.3㎡). 두 값 모두 평당 환산된 값이라 그대로 뺀 격차. 클수록 매매·전세 가격차가 크다.',
   jeonseRatio: 'APT 전세가율(%) = 평균 전세가 ÷ 평균 매매가 × 100. 단위가 약분되어 환산 불필요. 높을수록 매매가 대비 전세가가 높다.',
+  medianSale:
+    'KB 월간 아파트 중위 매매가(만원/호). 가격순 정중앙 값이라 평균보다 고가 이상치 왜곡이 적다. 상위지역(시/도·권역)만 제공되어, 시군구를 고르면 소속 상위지역 기준으로 표시된다.',
+  medianJeonse:
+    'KB 월간 아파트 중위 전세가(만원/호). 상위지역만 제공 — 시군구 선택 시 소속 상위지역 기준으로 표시된다.',
+  leading50:
+    'KB 선도아파트 50지수. 시가총액 상위 50개 대단지의 가격지수(2026.1=100)로, 시장 전체보다 먼저 움직이는 경향이 있는 대표 선행 지표. 전국 단일 지수라 지역 선택과 무관하게 동일하다.',
 };
 
 function toSortedRows(byDate: Map<string, Record<string, number | null>>): ChartRow[] {
@@ -91,6 +113,7 @@ export const MonthlyMarketDashboard: React.FC = () => {
   const {
     marketData,
     forecastData,
+    leading50,
     marketLoading,
     selectedRegions,
     regionLabels,
@@ -113,8 +136,12 @@ export const MonthlyMarketDashboard: React.FC = () => {
   const chartViews = useMemo(() => {
     if (selectedRegions.length === 0) return null;
     const slice = (rows: ChartRow[]) => rows.filter(r => r.date >= fromDate && r.date <= toDate);
+    // 선도50: 전국 단일 시계열 → 고정 dataKey 로 변환
+    const leading50Rows: ChartRow[] = leading50
+      .filter(p => p.value != null)
+      .map(p => ({ date: p.date, [KB50_KEY]: p.value }) as ChartRow);
 
-    return [
+    const views: MarketChartView[] = [
       {
         id: 'avgSale',
         title: 'APT 평균 매매가',
@@ -126,6 +153,20 @@ export const MonthlyMarketDashboard: React.FC = () => {
         title: 'APT 평균 전세가',
         unit: '만원/3.3㎡',
         data: slice(fieldRows(marketData, selectedRegions, 'aptAvgJeonsePerM2', PYEONG)),
+      },
+      {
+        id: 'medianSale',
+        title: 'APT 중위 매매가',
+        subtitle: '※ 상위지역(시/도)만 제공',
+        unit: '만원',
+        data: slice(fieldRows(marketData, selectedRegions, 'medianAptSale', 1)),
+      },
+      {
+        id: 'medianJeonse',
+        title: 'APT 중위 전세가',
+        subtitle: '※ 상위지역(시/도)만 제공',
+        unit: '만원',
+        data: slice(fieldRows(marketData, selectedRegions, 'medianAptJeonse', 1)),
       },
       {
         id: 'gap',
@@ -157,8 +198,18 @@ export const MonthlyMarketDashboard: React.FC = () => {
         referenceValue: NEUTRAL,
         data: slice(forecastRows(forecastData, selectedRegions, 'jeonseForecast')),
       },
+      {
+        id: 'leading50',
+        title: 'KB 선도아파트 50지수',
+        subtitle: '※ 전국 단일 — 지역 선택과 무관',
+        unit: '',
+        regions: [KB50_KEY],
+        labels: KB50_LABELS,
+        data: slice(leading50Rows),
+      },
     ];
-  }, [marketData, forecastData, selectedRegions, fromDate, toDate]);
+    return views;
+  }, [marketData, forecastData, leading50, selectedRegions, fromDate, toDate]);
 
   if (selectedRegions.length === 0) {
     return (
@@ -184,9 +235,12 @@ export const MonthlyMarketDashboard: React.FC = () => {
 
   return (
     <div className="flex h-full flex-col gap-3">
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 xl:grid-cols-2 xl:grid-rows-3">
+      {/* 9개 차트 — 2열 고정 행높이 그리드, 넘치면 세로 스크롤 */}
+      <div className="grid min-h-0 flex-1 auto-rows-[minmax(300px,1fr)] grid-cols-1 gap-3 overflow-y-auto xl:grid-cols-2">
         {(chartViews ?? []).map((view, i) => {
-          const cfg = computeDynamicYConfig(view.data, selectedRegions, marketYOpts(view.id));
+          const regions = view.regions ?? selectedRegions;
+          const labels = view.labels ?? regionLabels;
+          const cfg = computeDynamicYConfig(view.data, regions, marketYOpts(view.id));
           const range = cfg ? yRanges[`mk:${view.id}`] ?? { min: cfg.min, max: cfg.max } : undefined;
           return (
             <MetricChart
@@ -197,8 +251,8 @@ export const MonthlyMarketDashboard: React.FC = () => {
               infoAlign={i % 2 === 1 ? 'right' : 'left'}
               unit={view.unit}
               data={view.data}
-              selectedRegions={selectedRegions}
-              regionLabels={regionLabels}
+              selectedRegions={regions}
+              regionLabels={labels}
               syncId="kb-monthly-market"
               referenceValue={view.referenceValue}
               yDomain={range ? [range.min, range.max] : undefined}
