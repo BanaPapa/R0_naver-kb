@@ -40,10 +40,48 @@ const MonthlyView: FC = () => {
   return <MonthlyChartDashboard />;
 };
 
+// 데이터 신선도 뱃지 — 주간/월간 기준일과 갱신 지연 경고.
+// KB 발표 주기(주간 매주 금요일 / 월간 매월 말)보다 오래되면 경고색으로 갱신 누락을 알린다.
+// (수집·변환은 수동 파이프라인 — docs/KB_UPDATE_RUNBOOK.md)
+const DataFreshnessBadge: FC = () => {
+  const latestWeekly = useAppStore(s => s.latestDate);
+  const monthlyDates = useMonthlyStore(s => s.allDates);
+  const latestMonthly = monthlyDates.length ? monthlyDates[monthlyDates.length - 1]! : null;
+
+  // 주간: 기준일이 12일(한 주 누락 + 여유)보다 오래되면 지연.
+  const weeklyStale =
+    !!latestWeekly && Date.now() - new Date(latestWeekly).getTime() > 12 * 86400000;
+  // 월간: 기준월이 지난달보다 오래되면(2개월 이상 차이) 지연.
+  const monthlyStale = (() => {
+    if (!latestMonthly) return false;
+    const [y, m] = latestMonthly.split('-').map(Number);
+    const now = new Date();
+    return now.getFullYear() * 12 + now.getMonth() - (y! * 12 + (m! - 1)) >= 2;
+  })();
+  const anyStale = weeklyStale || monthlyStale;
+
+  if (!latestWeekly && !latestMonthly) return null;
+  return (
+    <span
+      className="eos-pill tnum"
+      style={anyStale ? { color: '#d97706', borderColor: '#f59e0b' } : undefined}
+      title={
+        '데이터 기준일 — KB 발표 주기: 주간 매주 금요일 / 월간 매월 말.\n' +
+        (anyStale
+          ? '갱신이 지연되고 있습니다. 최신 엑셀을 받아 인제스트를 실행해 주세요(docs/KB_UPDATE_RUNBOOK.md).'
+          : '데이터가 최신입니다.')
+      }
+    >
+      <span className="d t" />
+      {latestWeekly ? `주간 ${latestWeekly}${weeklyStale ? ' ⚠' : ''}` : ''}
+      {latestWeekly && latestMonthly ? ' · ' : ''}
+      {latestMonthly ? `월간 ${latestMonthly}${monthlyStale ? ' ⚠' : ''}` : ''}
+    </span>
+  );
+};
+
 // 브레드크럼 헤더 — 분석 모듈 경로 + 우측 액션
 const ShellHeader: FC<{ onOpenAnalysis: () => void }> = ({ onOpenAnalysis }) => {
-  const { latestDate, totalRecords } = useAppStore();
-
   return (
     <header className="eos-hdr">
       <div className="eos-crumb">
@@ -56,14 +94,7 @@ const ShellHeader: FC<{ onOpenAnalysis: () => void }> = ({ onOpenAnalysis }) => 
       </div>
 
       <div className="eos-hdr-right">
-        {(latestDate || totalRecords > 0) && (
-          <span className="eos-pill tnum">
-            <span className="d t" />
-            {latestDate ? `최신 ${latestDate}` : ''}
-            {latestDate && totalRecords > 0 ? ' · ' : ''}
-            {totalRecords > 0 ? `${totalRecords.toLocaleString()}건` : ''}
-          </span>
-        )}
+        <DataFreshnessBadge />
         <SlotControls />
         <ExportButton />
         <button className="eos-btn-primary" onClick={onOpenAnalysis}>

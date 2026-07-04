@@ -7,6 +7,7 @@ import { buildMidOptions, type MidOption } from '../../shared/lib/kb-mid-options
 import { monthlyLocal, type MonthlyRegionLookup } from '../../entities/monthly-data';
 import { InfoTip } from '../../shared/ui/InfoTip';
 import { PeriodSlider } from '../region-selector/PeriodSlider';
+import { RegionPresets } from '../region-selector/RegionPresets';
 import { ControlButton, ControlField, ControlSection, ControlSelect } from '../../../components/control-panel';
 import { getAdminRoleTip, useAdminUi } from '../../../components/admin-ui';
 
@@ -364,6 +365,8 @@ export const MonthlyRegionCascade: React.FC = () => {
             비교함 ({selectedRegions.length}/{MAX_REGIONS})
           </h3>
         </div>
+
+        <RegionPresets />
 
         {selectedRegions.length === 0 ? (
           <p className="text-xs text-gray-400 py-4 text-center">위에서 지역을 선택해 추가하세요</p>

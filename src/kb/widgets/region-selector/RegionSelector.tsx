@@ -7,6 +7,7 @@ import { getRegions, peekRegions, prefetchRegions, type RegionItem } from '../..
 import { buildMidOptions, type MidOption } from '../../shared/lib/kb-mid-options';
 import { InfoTip } from '../../shared/ui/InfoTip';
 import { PeriodSlider } from './PeriodSlider';
+import { RegionPresets } from './RegionPresets';
 import { ControlButton, ControlField, ControlSection, ControlSelect } from '../../../components/control-panel';
 import { getAdminRoleTip, useAdminUi } from '../../../components/admin-ui';
 
@@ -338,6 +339,8 @@ export const RegionSelector: React.FC = () => {
             비교함 ({selectedRegions.length}/{MAX_REGIONS})
           </h3>
         </div>
+
+        <RegionPresets />
 
         {selectedRegions.length === 0 ? (
           <p className="text-xs text-gray-400 py-4 text-center">
