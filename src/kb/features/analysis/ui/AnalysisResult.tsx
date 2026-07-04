@@ -167,12 +167,12 @@ const PromptBox: React.FC<{ text: string }> = ({ text }) => {
 
 export const StructuredReport: React.FC<{ body: string; scale?: number }> = ({ body, scale = 1 }) => {
   const s = useMemo(() => parseTabStructure(body), [body]);
-  const hasContent = s.conclusion || s.insights.length || s.keyPoints.length || s.questions.length;
+  const hasContent = s.conclusion || s.insights.length || s.keyPoints.length || s.forecast || s.questions.length;
   if (!s.recognized || !hasContent) return <Markdown text={body} scale={scale} />;
 
   const h2 = 'mb-1.5 text-[1.14em] font-bold text-gray-800';
   const hasFirst = !!(s.conclusion || s.insights.length);
-  const hasMid = s.keyPoints.length > 0;
+  const hasMid = s.keyPoints.length > 0 || !!s.forecast;
   const hasQ = s.questions.length > 0;
 
   return (
@@ -197,23 +197,33 @@ export const StructuredReport: React.FC<{ body: string; scale?: number }> = ({ b
 
       {hasFirst && (hasMid || hasQ) && <hr className="my-8 border-t border-gray-200" />}
 
-      {/* 핵심 내용 + 판단 근거(인터리브) */}
+      {/* 핵심 내용 + 판단 근거(인터리브) + 향후 전망 */}
       {hasMid && (
         <>
-          <p className={`mt-0 ${h2}`}>핵심 내용</p>
-          <ol className="my-1.5 ml-5 list-decimal space-y-3">
-            {s.keyPoints.map((kp, i) => (
-              <li key={i} className="pl-1">
-                <div>{renderRich(kp.point)}</div>
-                {kp.basis && (
-                  <div className="mt-1 rounded-md border-l-2 border-gray-200 bg-gray-50 px-3 py-1.5 text-[0.93em] text-gray-500">
-                    <span className="font-semibold text-gray-400">근거 </span>
-                    {renderRich(kp.basis)}
-                  </div>
-                )}
-              </li>
-            ))}
-          </ol>
+          {s.keyPoints.length > 0 && (
+            <>
+              <p className={`mt-0 ${h2}`}>핵심 내용</p>
+              <ol className="my-1.5 ml-5 list-decimal space-y-3">
+                {s.keyPoints.map((kp, i) => (
+                  <li key={i} className="pl-1">
+                    <div>{renderRich(kp.point)}</div>
+                    {kp.basis && (
+                      <div className="mt-1 rounded-md border-l-2 border-gray-200 bg-gray-50 px-3 py-1.5 text-[0.93em] text-gray-500">
+                        <span className="font-semibold text-gray-400">근거 </span>
+                        {renderRich(kp.basis)}
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
+          {s.forecast && (
+            <>
+              <p className={`${s.keyPoints.length ? 'mt-4' : 'mt-0'} ${h2}`}>향후 전망</p>
+              <p className="my-1.5">{renderRich(s.forecast)}</p>
+            </>
+          )}
         </>
       )}
 

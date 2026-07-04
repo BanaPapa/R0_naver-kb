@@ -18,6 +18,7 @@ export interface TabStructure {
   conclusion: string; // 결론 문단
   insights: string[]; // 인사이트 항목
   keyPoints: KeyPoint[]; // 핵심 내용 + 판단 근거(인터리브)
+  forecast: string; // 향후 전망 문단
   questions: OpenQuestion[]; // 의문점 + 프롬프트
   recognized: boolean; // 알려진 섹션을 하나라도 찾았는가(없으면 자유 마크다운으로 폴백)
 }
@@ -107,6 +108,7 @@ export function parseTabStructure(body: string): TabStructure {
   let insights: string[] = [];
   let points: string[] = [];
   let bases: string[] = [];
+  let forecast = '';
   let questions: OpenQuestion[] = [];
   let recognized = false;
 
@@ -125,6 +127,9 @@ export function parseTabStructure(body: string): TabStructure {
     } else if (t.includes('판단근거') || t.includes('근거')) {
       bases = orderedItems(sec.lines);
       recognized = true;
+    } else if (t.includes('전망') || t.includes('예측')) {
+      forecast = paragraph(sec.lines);
+      recognized = true;
     } else if (t.includes('의문')) {
       questions = parseQuestions(sec.lines);
       recognized = true;
@@ -132,5 +137,5 @@ export function parseTabStructure(body: string): TabStructure {
   }
 
   const keyPoints: KeyPoint[] = points.map((p, i) => ({ point: p, basis: bases[i] }));
-  return { conclusion, insights, keyPoints, questions, recognized };
+  return { conclusion, insights, keyPoints, forecast, questions, recognized };
 }

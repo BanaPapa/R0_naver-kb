@@ -15,7 +15,8 @@ import { AnalysisRegionPicker, MAX_ANALYSIS_REGIONS, type PickedRegion } from '.
 import { SlotPickerList } from './SlotPickerList';
 import { SavedAnalysisList } from './SavedAnalysisList';
 import type { ChartSetSnapshot, SlotEntry } from '../../chart-slots';
-import { AnalysisReport, type ReportTab } from './AnalysisResult';
+import { AnalysisReport, parseReportTabs, type ReportTab } from './AnalysisResult';
+import { PrintReportView } from './PrintReportView';
 import { ResultBoundary } from './ResultBoundary';
 import { AskPanel } from './AskPanel';
 import { TokenEstimate } from './TokenEstimate';
@@ -110,6 +111,7 @@ export const AnalysisModal: React.FC<AnalysisModalProps> = ({ open, onClose }) =
   const [resultDataLoading, setResultDataLoading] = useState(false); // 저장분석 재오픈 시 재수집 중
   const [activeTab, setActiveTab] = useState<ReportTab | null>(null); // 결과 활성 탭(Q&A 컨텍스트 한정용)
   const [exportOpen, setExportOpen] = useState(false); // 내보내기 드롭다운
+  const [printOpen, setPrintOpen] = useState(false); // A4 보고서 인쇄 미리보기
   const [copied, setCopied] = useState(false); // 복사하기 피드백
   const [slotIndex, setSlotIndex] = useState<number | null>(null); // 저장 슬롯 패널에서 선택된 슬롯
   const lastCollectRef = useRef<CollectForParams | null>(null); // 직전 분석의 수집 파라미터(저장용)
@@ -137,6 +139,7 @@ export const AnalysisModal: React.FC<AnalysisModalProps> = ({ open, onClose }) =
     setResultDataLoading(false);
     setActiveTab(null);
     setExportOpen(false);
+    setPrintOpen(false);
     setSlotIndex(null);
     lastCollectRef.current = null;
     setSavedId(null);
@@ -645,6 +648,13 @@ export const AnalysisModal: React.FC<AnalysisModalProps> = ({ open, onClose }) =
               {resultUsage && formatUsage(resultUsage) ? `  ·  ${formatUsage(resultUsage)}` : ''}
             </span>
             <button
+              onClick={() => setPrintOpen(true)}
+              className="flex-none rounded-lg border border-gray-300 px-4 py-2 text-base text-gray-700 hover:bg-gray-50"
+              title="A4 정형 보고서로 인쇄하거나 PDF로 저장합니다"
+            >
+              인쇄/PDF
+            </button>
+            <button
               onClick={doCopy}
               className="flex-none rounded-lg border border-gray-300 px-4 py-2 text-base text-gray-700 hover:bg-gray-50 disabled:border-green-200 disabled:bg-green-50 disabled:text-green-600"
               disabled={copied}
@@ -683,6 +693,21 @@ export const AnalysisModal: React.FC<AnalysisModalProps> = ({ open, onClose }) =
         )}
       </div>
     </div>
+
+    {/* A4 정형 보고서 인쇄/PDF 미리보기 — 현재 보고 있는 탭 기준 */}
+    {printOpen && phase === 'done' && (() => {
+      const tab = activeTab ?? parseReportTabs(result)[0]!;
+      return (
+        <PrintReportView
+          onClose={() => setPrintOpen(false)}
+          tabLabel={tab.label}
+          markdown={tab.body}
+          scope={resultScope}
+          datasets={resultDatasets ?? []}
+          model={resultModel}
+        />
+      );
+    })()}
     </ModalPortal>
   );
 };

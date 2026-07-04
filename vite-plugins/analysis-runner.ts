@@ -16,16 +16,32 @@ interface AnalysisRequestLike {
   model?: string | null;
 }
 
+// 시스템 프롬프트를 후보 경로 순서로 읽는다. 실제 파일은 src/kb/.../prompts 에 있으며
+// (프론트 토큰 예상치가 ?raw 로 같은 파일을 임포트한다), docs/ 는 구버전 경로 호환용.
+async function readPrompt(root: string, candidates: string[], fallback: string): Promise<string> {
+  for (const rel of candidates) {
+    const text = await fs.readFile(path.join(root, rel), 'utf8').catch(() => null);
+    if (text) return text;
+  }
+  return fallback;
+}
+
 export async function buildMessages(root: string, req: AnalysisRequestLike): Promise<{ system: string; user: string }> {
-  const system = await fs.readFile(path.join(root, 'docs/analysis-prompt.md'), 'utf8').catch(() => '당신은 부동산 데이터 분석가입니다. 한국어 마크다운으로 답하세요.');
+  const system = await readPrompt(
+    root,
+    ['src/kb/features/analysis/prompts/analysis-prompt.md', 'docs/analysis-prompt.md'],
+    '당신은 부동산 데이터 분석가입니다. 한국어 마크다운으로 답하세요.',
+  );
   const user = JSON.stringify({ scope: req.scope, datasets: req.datasets }, null, 2);
   return { system, user };
 }
 
 export async function buildAskMessages(root: string, req: AnalysisRequestLike): Promise<{ system: string; user: string }> {
-  const system = await fs
-    .readFile(path.join(root, 'docs/analysis-qa-prompt.md'), 'utf8')
-    .catch(() => '당신은 부동산 데이터 분석가입니다. 제공된 분석 결과와 데이터에만 근거해 한국어로 답하세요.');
+  const system = await readPrompt(
+    root,
+    ['src/kb/features/analysis/prompts/analysis-qa-prompt.md', 'docs/analysis-qa-prompt.md'],
+    '당신은 부동산 데이터 분석가입니다. 제공된 분석 결과와 데이터에만 근거해 한국어로 답하세요.',
+  );
   const history = (req.history ?? [])
     .map(t => `${t.role === 'user' ? '질문' : '답변'}: ${t.text}`)
     .join('\n\n');

@@ -107,6 +107,7 @@ export function toXlsxBlob(report: string, scope: AnalysisScope | null, datasets
         aoa.push(['', `핵심 내용 ${i + 1}`, kp.point]);
         if (kp.basis) aoa.push(['', `근거 ${i + 1}`, kp.basis]);
       });
+      if (s.forecast) aoa.push(['', '향후 전망', s.forecast]);
       s.questions.forEach((q, i) => {
         aoa.push(['', `의문점 ${i + 1}`, q.question]);
         if (q.prompt) aoa.push(['', `프롬프트 ${i + 1}`, q.prompt]);
