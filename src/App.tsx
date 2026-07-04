@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Sidebar, AppTab } from './components/Sidebar';
+import { startUserDataSync } from './kb/features/user-data-sync';
 import { NaverCrawlerTab } from './components/NaverCrawlerTab';
 import { SettingsPage } from './components/SettingsPage';
 import { LoginScreen } from './components/auth/LoginScreen';
@@ -21,6 +22,11 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('naver');
   const [sideCollapsed, setSideCollapsed] = useState(false);
   const auth = useAuth();
+
+  // KB 저장 데이터(분석·슬롯) ↔ 로그인 계정 동기화 시작 (1회)
+  useEffect(() => {
+    startUserDataSync();
+  }, []);
   const agentStatus = useAgentStatus();
   const crawler = useCrawler();
   const slots = useSlots(auth.user?.id ?? null);

@@ -35,12 +35,21 @@ const DATASETS = [
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
+// 버킷은 공개(public)로 유지 — KB 시계열은 공개 통계라 비밀이 아니고,
+// 공개 버킷이어야 익명(anon) 클라이언트가 정책 없이도 번들을 읽을 수 있다.
 async function ensureBucket() {
   const { data } = await supabase.storage.getBucket(BUCKET);
-  if (data) return;
-  const { error } = await supabase.storage.createBucket(BUCKET, { public: false });
+  if (data) {
+    if (!data.public) {
+      const { error } = await supabase.storage.updateBucket(BUCKET, { public: true });
+      if (error) throw error;
+      console.log(`버킷 공개 전환: ${BUCKET}`);
+    }
+    return;
+  }
+  const { error } = await supabase.storage.createBucket(BUCKET, { public: true });
   if (error && !/already exists/i.test(error.message)) throw error;
-  console.log(`버킷 생성: ${BUCKET}`);
+  console.log(`버킷 생성(공개): ${BUCKET}`);
 }
 
 async function publish() {
