@@ -4,9 +4,9 @@ import {
   getCookieStatus,
   startNaverLogin,
   validateConnection,
-  tryLaunchAgent,
   AgentStatus,
   CookieStatus,
+  ValidateReason,
 } from '../services/agentApi';
 
 const POLL_INTERVAL_MS = 10_000;
@@ -18,13 +18,11 @@ export interface AgentStatusHook {
   cookieReady: boolean;
   bearerReady: boolean;
   connectionValid: boolean | null;
-  launching: boolean;
-  launchFailed: boolean;
+  connectionReason: ValidateReason | null;
   loginLoading: boolean;
   loginError: string | null;
   loginJustSucceeded: boolean;
   recheck: () => Promise<CookieStatus | null>;
-  launchAndWait: () => Promise<void>;
   triggerLogin: () => Promise<void>;
 }
 
@@ -33,8 +31,7 @@ export function useAgentStatus(): AgentStatusHook {
   const [cookieReady, setCookieReady] = useState(false);
   const [bearerReady, setBearerReady] = useState(false);
   const [connectionValid, setConnectionValid] = useState<boolean | null>(null);
-  const [launching, setLaunching] = useState(false);
-  const [launchFailed, setLaunchFailed] = useState(false);
+  const [connectionReason, setConnectionReason] = useState<ValidateReason | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginJustSucceeded, setLoginJustSucceeded] = useState(false);
@@ -60,28 +57,10 @@ export function useAgentStatus(): AgentStatusHook {
     if (agentSt !== 'running') return;
     const cs = await getCookieStatus();
     if (!cs.hasCookies) return;
-    const valid = await validateConnection();
-    setConnectionValid(valid);
+    const result = await validateConnection();
+    setConnectionValid(result.valid);
+    setConnectionReason(result.valid ? null : result.reason);
   }, []);
-
-  // 커스텀 프로토콜로 에이전트 자동 실행, 최대 16초 폴링
-  const launchAndWait = useCallback(async (): Promise<void> => {
-    setLaunching(true);
-    setLaunchFailed(false);
-    tryLaunchAgent();
-    for (let i = 0; i < 8; i++) {
-      await new Promise<void>((r) => setTimeout(r, 2000));
-      const agentSt = await pingAgent();
-      if (agentSt === 'running') {
-        await check();
-        await validate();
-        setLaunching(false);
-        return;
-      }
-    }
-    setLaunching(false);
-    setLaunchFailed(true);
-  }, [check, validate]);
 
   const triggerLogin = useCallback(async (): Promise<void> => {
     setLoginLoading(true);
@@ -101,14 +80,14 @@ export function useAgentStatus(): AgentStatusHook {
     }
   }, [check, validate]);
 
-  // 에이전트 실행 여부 10초마다 감지
+  // 확장 설치·활성 여부 10초마다 감지
   useEffect(() => {
     void check();
     const id = setInterval(check, POLL_INTERVAL_MS);
     return () => clearInterval(id);
   }, [check]);
 
-  // 에이전트 실행 + 쿠키 있을 때만 10분마다 실제 토큰 검증
+  // 확장 활성 + 쿠키 있을 때만 10분마다 실제 토큰 검증
   useEffect(() => {
     if (status !== 'running' || !cookieReady) return;
     void validate();
@@ -121,13 +100,11 @@ export function useAgentStatus(): AgentStatusHook {
     cookieReady,
     bearerReady,
     connectionValid,
-    launching,
-    launchFailed,
+    connectionReason,
     loginLoading,
     loginError,
     loginJustSucceeded,
     recheck: check,
-    launchAndWait,
     triggerLogin,
   };
 }

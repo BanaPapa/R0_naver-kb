@@ -12,7 +12,7 @@ import type { AgentStatusHook } from '../hooks/useAgentStatus';
 import { CrawlerConfig, SavedSlot } from '../types';
 import { AreaUnit, PriceUnit } from '../services/api';
 import { setNaverBases, setNaverCrawlToken } from '../services/naverApi';
-import { fetchCrawlToken } from '../services/agentApi';
+import { fetchCrawlToken, EXTENSION_STORE_URL } from '../services/agentApi';
 import { startSearchLog, finishSearchLog } from '../services/searchLogsRepo';
 
 interface NaverCrawlerTabProps {
@@ -24,9 +24,6 @@ interface NaverCrawlerTabProps {
   onRequestInquiry: (prefill?: Record<string, unknown> | null) => void;
 }
 
-const AGENT_DOWNLOAD_URL =
-  'https://github.com/BanaPapa/Estate-OS/releases/latest/download/Estate-OS-Agent-Setup.exe';
-
 export function NaverCrawlerTab({ crawler, slots, session, agentStatus, isAdmin, onRequestInquiry }: NaverCrawlerTabProps) {
   const { state, start, stop, skipDong, reset, clearLogs, load } = crawler;
   const [searchKey, setSearchKey] = useState(0);
@@ -37,37 +34,21 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus, isAdmin,
   const [tableStats, setTableStats] = useState<TableStats | null>(null);
   const [slotModalOpen, setSlotModalOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [showInstallModal, setShowInstallModal] = useState(false);
-  const [installDone, setInstallDone] = useState(false);
   const [failure, setFailure] = useState<{ message: string; context: Record<string, unknown> } | null>(null);
   const {
     status: agentRunStatus,
     cookieReady,
     connectionValid,
-    launching,
-    launchFailed,
+    connectionReason,
     loginLoading,
     loginError,
-    loginJustSucceeded,
     recheck: recheckAgent,
-    launchAndWait,
     triggerLogin,
   } = agentStatus;
 
-  // 로그인 직후 성공 화면 표시 (3.5초)
-  const [showLoginSuccess, setShowLoginSuccess] = useState(false);
-  const prevLoginSucceeded = useRef(false);
-  useEffect(() => {
-    if (loginJustSucceeded && !prevLoginSucceeded.current) {
-      prevLoginSucceeded.current = true;
-      setShowLoginSuccess(true);
-      const t = setTimeout(() => setShowLoginSuccess(false), 3500);
-      return () => clearTimeout(t);
-    }
-    if (!loginJustSucceeded) {
-      prevLoginSucceeded.current = false;
-    }
-  }, [loginJustSucceeded]);
+  // 네이버 로그인은 선택 사항 — 검색이 자주 막힐 때만 완화용으로 권한다.
+  // 사용자가 이 안내를 닫으면 다시 띄우지 않는다.
+  const [loginHintDismissed, setLoginHintDismissed] = useState(false);
 
   // agentRunStatus가 일시적으로 offline/unknown으로 바뀌어도 30초 간 이전 상태 유지
   // (탭 전환 후 복귀 시 polling 간격에 의한 순간 상태 변화로 SearchPanel 언마운트 방지)
@@ -101,21 +82,8 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus, isAdmin,
     }
   }, [agentRunStatus, session, isAdmin]);
 
-  const handleInstallConsent = () => {
-    setInstallDone(true);
-    // state 업데이트가 렌더링된 후 다운로드 트리거 (완료 화면이 먼저 표시되도록)
-    setTimeout(() => {
-      const a = document.createElement('a');
-      a.href = AGENT_DOWNLOAD_URL;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => { if (a.parentNode) a.parentNode.removeChild(a); }, 200);
-    }, 80);
-  };
-
-  const handleCloseInstallModal = () => {
-    setShowInstallModal(false);
-    setInstallDone(false);
+  const openStore = () => {
+    window.open(EXTENSION_STORE_URL, '_blank', 'noreferrer');
   };
 
   const canSave = state.properties.length > 0 && state.lastConfig !== null;
@@ -206,9 +174,17 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus, isAdmin,
   }, [state.status, state.errorMessage, state.meta, isAdmin]);
 
   const handleStart = (config: CrawlerConfig) => {
+    // 429(rate-limited)는 쿠키 만료가 아니다 — 재로그인으로 안 풀린다. 검색을 막지 않고
+    // 안내만 한다(내부 withRetry가 백오프로 재시도). 실제 인증 만료(expired)에만 재로그인 요구.
     if (connectionValid === false) {
-      setNotice('네이버 로그인 쿠키가 유효하지 않습니다. 다시 네이버 로그인 후 검색해 주세요.');
-      return;
+      if (connectionReason === 'expired' || connectionReason === 'no-login') {
+        setNotice('로그인이 만료되었습니다. 다시 로그인한 뒤 검색해 주세요.');
+        return;
+      }
+      if (connectionReason === 'rate-limited') {
+        setNotice('요청이 잠시 제한되었습니다(429). 재로그인은 필요 없습니다 — 잠시 후 다시 시도하면 자동 재시도됩니다.');
+        // 차단하지 않고 진행: withRetry가 429를 백오프 재시도한다.
+      }
     }
     setSearchKey((k) => k + 1);
     setCrawlModalOpen(true); // 검색 시작과 동시에 진행률 모달 표시
@@ -233,245 +209,63 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus, isAdmin,
               <path d="M8 12h8M12 8v8" strokeLinecap="round" />
             </svg>
           </div>
-          <h2>에이전트가 실행되지 않고 있습니다</h2>
+          <h2>매물시세 연결기(브라우저 확장)가 필요합니다</h2>
           <p>
-            네이버 부동산 매물 검색은 이 PC에서 실행 중인
+            매물 검색은 <b>브라우저 확장</b>을 통해
             <br />
-            <b>Estate-OS Agent</b>를 통해서만 동작합니다.
+            이 PC(내 인터넷)에서 직접 조회하는 방식으로 동작합니다.
+            <br />
+            크롬·엣지에서 <b>한 번만 설치</b>하면 됩니다. 별도 프로그램 다운로드는 없습니다.
           </p>
 
           <div className="nv-agent-paths">
-            {/* 이미 설치된 경우 */}
-            <div className="nv-agent-path-section">
-              <div className="nv-agent-path-info">
-                <div className="nv-agent-path-label">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={16} height={16}><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                  이미 설치되어 있다면
-                </div>
-                <p className="nv-agent-path-desc">
-                  {launching
-                    ? '에이전트를 시작하는 중입니다… (최대 15초)'
-                    : launchFailed
-                      ? '기존 버전은 자동 실행이 지원되지 않습니다. 직접 실행 후 연결하거나, 최신 버전을 재설치하세요.'
-                      : '버튼을 누르면 설치된 에이전트를 자동으로 찾아 실행합니다.'}
-                </p>
-              </div>
-              <div className="nv-agent-path-action">
-                {launching ? (
-                  <span className="nv-login-spinner nv-spinner-lg" />
-                ) : launchFailed ? (
-                  <button className="btn-primary" onClick={recheckAgent}>직접 실행 후 연결</button>
-                ) : (
-                  <button className="btn-primary" onClick={launchAndWait}>에이전트 자동 실행</button>
-                )}
-              </div>
-            </div>
-
-            {/* 처음 설치 / 재설치 */}
+            {/* 처음 설치 */}
             <div className="nv-agent-path-section nv-agent-path-install">
               <div className="nv-agent-path-info">
                 <div className="nv-agent-path-label">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={16} height={16}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                  {launchFailed ? '최신 버전 재설치' : '처음 설치하는 경우'}
+                  처음이라면
                 </div>
                 <p className="nv-agent-path-desc">
-                  {launchFailed
-                    ? '최신 버전은 자동 실행을 지원합니다. 재설치 후 버튼 한 번으로 연결됩니다.'
-                    : <>아래 버튼을 눌러 에이전트를 다운로드하고 설치하세요.<br />설치가 완료되면 트레이 아이콘이 자동으로 나타납니다.</>}
+                  웹스토어에서 <b>"Chrome에 추가"</b> 한 번이면 설치 완료됩니다.
+                  <br />exe 다운로드·보안 경고 없이 바로 사용할 수 있습니다.
                 </p>
               </div>
               <div className="nv-agent-path-action">
-                <button className="btn-outline" onClick={() => setShowInstallModal(true)}>
-                  {launchFailed ? '최신 버전 다운로드' : '에이전트 다운로드'}
-                </button>
+                <button className="btn-primary" onClick={openStore}>웹스토어에서 설치</button>
+              </div>
+            </div>
+
+            {/* 이미 설치한 경우 */}
+            <div className="nv-agent-path-section">
+              <div className="nv-agent-path-info">
+                <div className="nv-agent-path-label">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={16} height={16}><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                  이미 설치했다면
+                </div>
+                <p className="nv-agent-path-desc">
+                  확장을 설치했는데도 이 화면이 보이면 버튼을 눌러 다시 연결하세요.
+                  <br />브라우저 확장 목록에서 <b>사용 설정</b>이 켜져 있는지도 확인해 주세요.
+                </p>
+              </div>
+              <div className="nv-agent-path-action">
+                <button className="btn-outline" onClick={recheckAgent}>연결 재시도</button>
               </div>
             </div>
           </div>
-        </div>
 
-        {showInstallModal && (
-          <div className="nv-install-overlay" onClick={(e) => { if (e.target === e.currentTarget) handleCloseInstallModal(); }}>
-            <div className="nv-install-modal nv-install-modal--wide">
-              <div className="nv-install-modal-header">
-                <h3>Estate-OS Agent 설치 안내</h3>
-                <button className="nv-install-close" onClick={handleCloseInstallModal} aria-label="닫기">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" />
-                  </svg>
-                </button>
-              </div>
-
-              {installDone ? (
-                <div className="nv-install-done">
-                  <div className="nv-install-done-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                  </div>
-                  <p className="nv-install-done-title">다운로드가 시작됩니다!</p>
-                  <p className="nv-install-done-desc">
-                    다운로드한 파일(<b>Estate-OS-Agent-Setup.exe</b>)을 실행하면
-                    <br />클릭 한 번으로 설치가 완료됩니다.
-                    <br /><br />
-                    설치 후 트레이 아이콘이 뜨면 이 화면으로 돌아와
-                    <br /><b>연결 재시도</b>를 눌러 주세요.
-                  </p>
-                  <button className="btn-primary nv-install-action-btn" onClick={handleCloseInstallModal}>
-                    확인
-                  </button>
-                </div>
-              ) : (
-                <div className="nv-install-modal-body">
-                  <p className="nv-install-intro">
-                    설치 전에 아래 내용을 꼭 읽어 주세요.
-                  </p>
-
-                  <div className="nv-install-cards">
-                    <div className="nv-install-card">
-                      <div className="nv-install-card-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12l2 2 4-4"/></svg>
-                      </div>
-                      <div>
-                        <div className="nv-install-card-title">이 프로그램은 무엇인가요?</div>
-                        <div className="nv-install-card-desc">
-                          PC 배경에서 조용히 실행되는 소형 도우미 프로그램입니다.<br />
-                          웹사이트에서 네이버 부동산 데이터를 조회할 때,<br />
-                          이 PC를 통해 대신 요청을 보내줍니다.
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="nv-install-card">
-                      <div className="nv-install-card-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                      </div>
-                      <div>
-                        <div className="nv-install-card-title">내 정보는 안전한가요?</div>
-                        <div className="nv-install-card-desc">
-                          네이버 로그인 쿠키는 <b>이 PC에만 저장</b>되며, 외부 서버로 전송되지 않습니다.<br />
-                          이 프로그램은 네이버 부동산 외 다른 사이트에 접근하지 않습니다.
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="nv-install-card">
-                      <div className="nv-install-card-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                      </div>
-                      <div>
-                        <div className="nv-install-card-title">어디에 설치되나요?</div>
-                        <div className="nv-install-card-desc">
-                          <b>관리자 권한 불필요</b> — 현재 사용자 폴더에 설치됩니다.<br/>
-                          Windows 시작 시 자동 실행되며 트레이에 아이콘으로 상주합니다.<br/>
-                          삭제: 설정 → 앱 → Estate-OS Agent → 제거
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="nv-install-card">
-                      <div className="nv-install-card-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
-                      </div>
-                      <div>
-                        <div className="nv-install-card-title">"Windows의 PC 보호" 경고가 뜨면?</div>
-                        <div className="nv-install-card-desc">
-                          소규모 배포 앱은 Microsoft의 서명 인증을 받지 않아 SmartScreen 경고가 표시됩니다.<br/>
-                          <b>추가 정보</b>를 클릭한 뒤 <b>실행</b>을 누르면 정상 설치됩니다. 악성 코드가 아닙니다.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="nv-install-modal-actions">
-                    <button className="btn-outline" onClick={handleCloseInstallModal}>취소</button>
-                    <button className="btn-primary nv-install-action-btn" onClick={handleInstallConsent}>
-                      이해했습니다
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+          <div className="nv-agent-reassure">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} width={16} height={16}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            로그인 정보는 <b>내 브라우저에만</b> 있고 외부 서버로 전송되지 않습니다. 확장은 매물 검색에 필요한 사이트 외에는 접근하지 않습니다.
           </div>
-        )}
-      </div>
-    );
-  }
-
-  // 에이전트 실행 중이지만 네이버 로그인 안 됨 (데이터 없을 때만)
-  if (agentRunStatus === 'running' && !cookieReady && state.properties.length === 0) {
-    return (
-      <div className="eos-state-screen">
-        <div className="nv-agent-offline">
-          <div className="nv-agent-offline-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 8v4l3 3" strokeLinecap="round" />
-            </svg>
-          </div>
-          <h2>네이버 로그인이 필요합니다</h2>
-          <p>
-            아래 버튼을 누르면 네이버 로그인 창이 열립니다.
-            <br />
-            <b>평소처럼 네이버에 로그인</b>하면 자동으로 연결됩니다.
-          </p>
-          {loginError && (
-            <div className="nv-login-error">{loginError}</div>
-          )}
-          <div className="nv-agent-actions">
-            <button
-              className="nv-login-btn"
-              onClick={triggerLogin}
-              disabled={loginLoading}
-            >
-              {loginLoading ? (
-                <>
-                  <span className="nv-login-spinner" />
-                  로그인 창이 열렸습니다 — 네이버에 로그인해 주세요
-                </>
-              ) : (
-                '네이버 로그인'
-              )}
-            </button>
-          </div>
-          {loginLoading && (
-            <div className="nv-login-notice">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              <span>
-                창이 보이지 않으면 <b>작업 표시줄</b>에서 찾아 클릭해 주세요.<br />
-                로그인 후 화면이 바뀌어도 <b>창을 직접 닫지 마세요.</b><br />
-                연결 정보 수집이 끝나면 자동으로 닫힙니다.
-              </span>
-            </div>
-          )}
         </div>
       </div>
     );
   }
 
-  // 로그인 직후 성공 안내 (3.5초)
-  if (agentRunStatus === 'running' && cookieReady && showLoginSuccess && state.properties.length === 0) {
-    return (
-      <div className="eos-state-screen">
-        <div className="nv-agent-offline">
-          <div className="nv-login-success-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
-          </div>
-          <h2 style={{ color: 'var(--blue)' }}>네이버 로그인 완료!</h2>
-          <p>
-            이제 매물 검색을 시작할 수 있습니다.
-            <br />
-            <span style={{ fontSize: 13 }}>잠시 후 검색 화면으로 전환됩니다…</span>
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // 네이버 로그인은 필수가 아니다. 확장이 브라우저의 익명 세션 쿠키로 검색을 수행하며,
+  // 로그인은 429(과다요청)·봇차단을 완화하는 "선택" 요소일 뿐이다. 따라서 로그인 안 됨
+  // 상태에서도 검색 화면으로 바로 들어간다(강제 로그인 화면 제거).
 
   return (
     <div className={`eos-work${ctrlCollapsed ? ' ctrl-collapsed' : ''}`}>
@@ -483,10 +277,36 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus, isAdmin,
       />
 
       <main className="eos-view">
-        {connectionValid === false && (
+        {!cookieReady && !loginHintDismissed && (
           <div className="nv-bearer-warn nv-bearer-warn--action">
             <div className="nv-bearer-warn-text">
-              인증 토큰이 만료되어 재로그인으로 토큰을 갱신해야 할 수 있습니다.
+              <b>로그인 없이도 검색됩니다.</b> 검색이 자주 막히거나(429) 빌라·단독 결과가 비면 매물 사이트에 로그인해 보세요(선택).
+            </div>
+            <button
+              className="nv-bearer-relogin-btn"
+              onClick={triggerLogin}
+              disabled={loginLoading}
+            >
+              {loginLoading ? '로그인 중…' : '매물 사이트 로그인'}
+            </button>
+            <button
+              className="nv-bearer-relogin-btn"
+              onClick={() => setLoginHintDismissed(true)}
+              aria-label="안내 닫기"
+            >
+              닫기
+            </button>
+          </div>
+        )}
+        {loginError && !cookieReady && (
+          <div className="nv-bearer-warn">
+            <div className="nv-bearer-warn-text">{loginError}</div>
+          </div>
+        )}
+        {connectionValid === false && (connectionReason === 'expired' || connectionReason === 'no-login') && (
+          <div className="nv-bearer-warn nv-bearer-warn--action">
+            <div className="nv-bearer-warn-text">
+              로그인이 만료되었습니다. 다시 로그인하면 연결이 갱신됩니다.
             </div>
             <button
               className="nv-bearer-relogin-btn"
@@ -495,6 +315,13 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus, isAdmin,
             >
               {loginLoading ? '로그인 중…' : '다시 로그인'}
             </button>
+          </div>
+        )}
+        {connectionValid === false && connectionReason === 'rate-limited' && (
+          <div className="nv-bearer-warn">
+            <div className="nv-bearer-warn-text">
+              요청이 잠시 제한되었습니다(429). 재로그인은 필요 없습니다 — 잠시 후 다시 검색하면 자동으로 재시도됩니다.
+            </div>
           </div>
         )}
         <Monitor

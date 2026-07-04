@@ -79,7 +79,7 @@ export default function App() {
           ? '수집 중지됨'
           : status === 'error'
             ? '오류 발생'
-            : '네이버 부동산 · 대기 중';
+            : '매물 검색 · 대기 중';
 
   const openInquiry = (prefill?: Record<string, unknown> | null) => {
     setInquiryPrefill(prefill ?? null);

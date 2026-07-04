@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        width: 260px;
+        margin: 0;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        background: #0d1117;
+        color: #e6edf3;
+        padding: 16px;
+      }
+      h1 {
+        font-size: 14px;
+        margin: 0 0 4px;
+        color: #00d4aa;
+      }
+      p {
+        font-size: 12px;
+        line-height: 1.5;
+        margin: 8px 0 0;
+        color: #9aa7b4;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+        font-size: 12px;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #6b7684;
+      }
+      .dot.on {
+        background: #00d4aa;
+      }
+      .dot.off {
+        background: #e5534b;
+      }
+      a {
+        color: #00d4aa;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Estate-OS 매물시세 연결기</h1>
+    <p>이 확장이 켜져 있으면 Estate-OS 웹앱에서 매물 검색을 사용할 수 있습니다.</p>
+    <div class="row"><span id="dot-login" class="dot"></span><span id="txt-login">상태 확인 중…</span></div>
+    <div class="row"><span id="dot-hgnn" class="dot"></span><span id="txt-hgnn">리뷰 사이트 상태 확인 중…</span></div>
+    <p style="margin-top: 12px">
+      <b>로그인 없이도 검색</b>됩니다. 검색이 자주 막히면(429)
+      <a href="https://nid.naver.com/nidlogin.login" target="_blank" rel="noreferrer">매물 사이트 로그인</a>
+      후 다시 시도하세요.
+    </p>
+    <script src="popup.js"></script>
+  </body>
+</html>
