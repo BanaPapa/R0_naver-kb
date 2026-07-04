@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "api/kb-analysis.ts": { "maxDuration": 300 }
+  },
   "rewrites": [
     { "source": "/naver-api/(.*)", "destination": "/api/naver-proxy?__path=$1" },
     { "source": "/naver-new-api/(.*)", "destination": "/api/naver-new-proxy?__path=$1" }

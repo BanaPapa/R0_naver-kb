@@ -24,6 +24,15 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({ onManage }) 
   const def = getProvider(selectedProviderId);
   const isBridge = def?.apiShape === 'claude-bridge';
 
+  // 배포에서는 claude-bridge(로컬 Claude 세션 대행)를 쓸 수 없다 — 목록에서 제외하고,
+  // 이전 세션에서 저장된 선택이 bridge면 첫 번째 사용 가능한 프로바이더로 자동 전환.
+  const isProd = !import.meta.env.DEV;
+  const visibleProviders = isProd ? PROVIDERS.filter(p => p.apiShape !== 'claude-bridge') : PROVIDERS;
+  useEffect(() => {
+    if (isProd && isBridge && visibleProviders[0]) select(visibleProviders[0].id, null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isProd, isBridge]);
+
   useEffect(() => {
     if (!isBridge) void refreshModels(selectedProviderId);
   }, [selectedProviderId, isBridge, refreshModels]);
@@ -40,7 +49,7 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({ onManage }) 
           onChange={e => select(e.target.value, null)}
           className="rounded-lg border border-gray-300 px-2.5 py-2 text-base"
         >
-          {PROVIDERS.map(p => (
+          {visibleProviders.map(p => (
             <option key={p.id} value={p.id}>{p.label}</option>
           ))}
         </select>

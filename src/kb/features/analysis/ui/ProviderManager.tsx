@@ -45,11 +45,21 @@ export const ProviderManager: React.FC<ProviderManagerProps> = ({ onBack }) => {
     setValue('');
   };
 
+  // 배포에서는 구독 OAuth(콜백이 localhost 전용)를 쓸 수 없다 — API 키만 지원.
+  const isProd = !import.meta.env.DEV;
+
   return (
     <div className="space-y-3">
       <button onClick={onBack} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
         <ArrowLeft className="h-4 w-4" /> 돌아가기
       </button>
+
+      {isProd && (
+        <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
+          API 키는 회원님 계정에 안전하게 저장되며, 분석은 회원님의 키로 실행됩니다.
+          구독(OAuth) 로그인은 로컬 앱에서만 지원됩니다.
+        </p>
+      )}
 
       <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200">
         {PROVIDERS.filter(p => p.apiShape !== 'claude-bridge').map(p => {
@@ -66,13 +76,13 @@ export const ProviderManager: React.FC<ProviderManagerProps> = ({ onBack }) => {
                   {p.auth.includes('apiKey') && (
                     <button onClick={() => { setOpenForm({ id: p.id, kind: 'apiKey' }); setValue(''); }} className="rounded border border-gray-300 px-2 py-1 text-xs hover:bg-gray-50">API 키</button>
                   )}
-                  {p.auth.includes('subscription') && (sub?.kind === 'oauth-pkce' || sub?.kind === 'oauth-loopback') && (
+                  {!isProd && p.auth.includes('subscription') && (sub?.kind === 'oauth-pkce' || sub?.kind === 'oauth-loopback') && (
                     <button onClick={() => void startOAuth(p.id)} className="rounded border border-blue-300 px-2 py-1 text-xs text-blue-700 hover:bg-blue-50">구독으로 로그인</button>
                   )}
-                  {p.auth.includes('subscription') && sub?.kind === 'oauth-code' && (
+                  {!isProd && p.auth.includes('subscription') && sub?.kind === 'oauth-code' && (
                     <button onClick={() => void beginOAuthCode(p.id)} className="rounded border border-blue-300 px-2 py-1 text-xs text-blue-700 hover:bg-blue-50">구독으로 로그인</button>
                   )}
-                  {p.auth.includes('subscription') && sub?.kind === 'session-token' && (
+                  {!isProd && p.auth.includes('subscription') && sub?.kind === 'session-token' && (
                     <button onClick={() => { setOpenForm({ id: p.id, kind: 'token' }); setValue(''); }} className="rounded border border-blue-300 px-2 py-1 text-xs text-blue-700 hover:bg-blue-50">구독으로 로그인</button>
                   )}
                   {st?.connected && (
