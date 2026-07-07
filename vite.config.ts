@@ -6,6 +6,10 @@ import { issueCrawlToken } from './lib/crawlTokenCore';
 // KB 시계열 분석 모듈의 AI 분석 백엔드(개발 서버 전용 브릿지).
 import { analysisBridge } from './vite-plugins/analysis-bridge';
 import { providerBridge } from './vite-plugins/provider-bridge';
+// 지역별 청약현황(청약홈) API — R6_Apply 이식, Node 크롤러 개발 미들웨어.
+// @ts-expect-error — .mjs Node 모듈 (개발 서버 전용, 타입 선언 없음)
+import { applyhomeApiPlugin } from './vite-plugins/applyhome-api.mjs';
+import fs from 'node:fs';
 
 // 로컬 개발용 /api/crawl-token 미들웨어.
 // Vercel 서버리스 함수 api/crawl-token.ts는 vite dev에서 서빙되지 않으므로,
@@ -70,11 +74,31 @@ function naverTokenInjector() {
   };
 }
 
+// 청약 아카이브(Supabase)·odcloud 폴백은 서버 전용 키를 process.env 로 읽는다.
+// 로컬에는 .env 가 없고 .env.kb-publish(gitignore, 게시 스크립트용)에 동일 키가
+// 있으므로 개발 서버에서만 이를 보조로 읽어 과거(>5년) 조회를 활성화한다.
+function loadKbPublishEnv(): Record<string, string> {
+  try {
+    const raw = fs.readFileSync('.env.kb-publish', 'utf8').replace(/^﻿/, '');
+    const out: Record<string, string> = {};
+    for (const line of raw.split(/\r?\n/)) {
+      const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
+      if (m) out[m[1]] = m[2];
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 export default defineConfig(({ mode }) => {
   // 접두사 없는 변수까지 모두 로드(CRAWL_TOKEN_SECRET 등). 세 번째 인자 '' = 전체.
   const env = loadEnv(mode, process.cwd(), '');
+  // 청약홈 미들웨어(lib/applyhome)가 process.env 에서 서버 키를 지연 읽기하므로 주입.
+  // .env 값이 우선, 없으면 .env.kb-publish 값으로 보충.
+  process.env = { ...process.env, ...loadKbPublishEnv(), ...env };
   return {
-  plugins: [react(), naverTokenInjector(), crawlTokenDevApi(env), analysisBridge(), providerBridge()],
+  plugins: [react(), naverTokenInjector(), crawlTokenDevApi(env), analysisBridge(), providerBridge(), applyhomeApiPlugin()],
   server: {
     port: 5174,
     proxy: {

@@ -17,6 +17,7 @@ import { InquiryModal } from './components/inquiry/InquiryModal';
 import { useAdminInbox } from './hooks/useAdminInbox';
 import KbModule from './kb/KbModule';
 import { KbPriceTab } from './kbprice/KbPriceTab';
+import { ApplyTab } from './apply/ApplyTab';
 import { AdminUiProvider } from './components/admin-ui';
 
 export default function App() {
@@ -41,6 +42,7 @@ export default function App() {
   const isAdminTab = activeTab === 'admin';
   const isKb = activeTab === 'kb';
   const isKbPrice = activeTab === 'kbprice';
+  const isApply = activeTab === 'apply';
   const isAdmin = auth.profile?.role === 'admin' && auth.profile?.status === 'approved';
   const adminInbox = useAdminInbox(isAdmin);
 
@@ -52,6 +54,10 @@ export default function App() {
   // KB시세 탭도 동일하게 지연 마운트 + 마운트 유지(검색 결과·필터 상태 보존)
   const [kbPriceSeen, setKbPriceSeen] = useState(false);
   if (isKbPrice && !kbPriceSeen) setKbPriceSeen(true);
+
+  // 지역별 청약현황 탭도 지연 마운트 + 마운트 유지
+  const [applySeen, setApplySeen] = useState(false);
+  if (isApply && !applySeen) setApplySeen(true);
 
   // Supabase가 설정된 경우에만 로그인/승인 게이트 적용. 미설정이면 기존처럼 바로 사용.
   // 비밀번호 재설정 링크로 진입 → 다른 모든 게이트보다 우선해 새 비밀번호 화면 표시.
@@ -131,15 +137,15 @@ export default function App() {
             <svg className="sep" viewBox="0 0 24 24">
               <path d="M9 6l6 6-6 6" />
             </svg>
-            <b>{isAdminTab ? '회원 승인' : isSettings ? '인증 설정' : isKbPrice ? 'KB시세' : '매물시세'}</b>
-            {!isSettings && !isAdminTab && !isKbPrice && agentStatus.status === 'running' && (
+            <b>{isAdminTab ? '회원 승인' : isSettings ? '인증 설정' : isKbPrice ? 'KB시세' : isApply ? '지역별 청약현황' : '매물시세'}</b>
+            {!isSettings && !isAdminTab && !isKbPrice && !isApply && agentStatus.status === 'running' && (
               agentStatus.connectionValid === false
                 ? <span className="tag tag--warn">재연결 필요</span>
                 : <span className="tag">LIVE</span>
             )}
           </div>
 
-          {!isSettings && !isAdminTab && !isKbPrice && (
+          {!isSettings && !isAdminTab && !isKbPrice && !isApply && (
             <div className="eos-hdr-right">
               <div className={`eos-ws ${wsState}`}>
                 <span className="wd" />
@@ -152,7 +158,7 @@ export default function App() {
 
         {/* 매물시세 탭은 항상 마운트 상태로 두고 다른 탭일 때만 숨긴다.
             (언마운트하면 단위/지역/필터 등 로컬 선택 상태가 초기화되는 문제 방지) */}
-        <div style={{ display: isSettings || isAdminTab || isKb || isKbPrice ? 'none' : 'contents' }}>
+        <div style={{ display: isSettings || isAdminTab || isKb || isKbPrice || isApply ? 'none' : 'contents' }}>
           <NaverCrawlerTab crawler={crawler} slots={slots} session={auth.session} agentStatus={agentStatus} isAdmin={isAdmin} onRequestInquiry={openInquiry} />
         </div>
 
@@ -168,6 +174,12 @@ export default function App() {
         {kbPriceSeen && (
           <div style={{ display: isKbPrice ? 'contents' : 'none' }}>
             <KbPriceTab userId={auth.user?.id ?? null} />
+          </div>
+        )}
+        {/* 지역별 청약현황 — 첫 진입 후 마운트 유지, 청약 탭일 때만 표시 */}
+        {applySeen && (
+          <div style={{ display: isApply ? 'contents' : 'none' }}>
+            <ApplyTab userId={auth.user?.id ?? null} />
           </div>
         )}
         {isAdminTab && isAdmin && (

@@ -7,9 +7,16 @@ interface RegionSelectProps {
   value: RegionSelection;
   onChange: (selection: RegionSelection) => void;
   disabled?: boolean;
+  // 시/도만 노출 (중·소지역 select 숨김). 청약현황처럼 시/도 단위 데이터에 사용.
+  sidoOnly?: boolean;
+  // 시/도 옵션 필터 (예: 청약홈에 매핑되는 시/도만 노출).
+  filterLarge?: (item: RegionItem) => boolean;
+  // 대지역 드롭다운 최상단에 추가할 '전체' 옵션 (예: 청약홈 공급지역 전체).
+  // 선택 시 중·소지역 로딩 없이 large 만 세팅된다.
+  allOption?: RegionItem;
 }
 
-export function RegionSelect({ value, onChange, disabled }: RegionSelectProps) {
+export function RegionSelect({ value, onChange, disabled, sidoOnly, filterLarge, allOption }: RegionSelectProps) {
   const [largeList, setLargeList] = useState<RegionItem[]>([]);
   const [midList, setMidList] = useState<RegionItem[]>([]);
   const [smallList, setSmallList] = useState<RegionItem[]>([]);
@@ -22,19 +29,22 @@ export function RegionSelect({ value, onChange, disabled }: RegionSelectProps) {
   useEffect(() => {
     setLoadingLarge(true);
     getRegions(1)
-      .then(setLargeList)
+      .then((list) => setLargeList(filterLarge ? list.filter(filterLarge) : list))
       .catch(console.error)
       .finally(() => setLoadingLarge(false));
-  }, []);
+  }, [filterLarge]);
 
   // 대지역 변경 시 중지역 로드
   const handleLargeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selected = largeList.find((r) => r.code === e.target.value) ?? null;
+    const code = e.target.value;
+    const isAll = !!allOption && code === allOption.code;
+    const selected = isAll ? allOption : (largeList.find((r) => r.code === code) ?? null);
     onChange({ large: selected, mid: null, small: null });
     setMidList([]);
     setSmallList([]);
 
-    if (selected) {
+    // '전체'(공급지역 전체)는 하위 지역이 없으므로 중지역을 로드하지 않는다.
+    if (selected && !isAll) {
       setLoadingMid(true);
       getRegions(2, selected.code)
         .then(setMidList)
@@ -72,6 +82,9 @@ export function RegionSelect({ value, onChange, disabled }: RegionSelectProps) {
           disabled={disabled || loadingLarge}
         >
           <option value="">{loadingLarge ? '로딩 중...' : '시/도 선택'}</option>
+          {allOption && !loadingLarge && (
+            <option value={allOption.code}>{allOption.name}</option>
+          )}
           {largeList.map((r) => (
             <option key={r.code} value={r.code}>
               {r.name}
@@ -79,6 +92,7 @@ export function RegionSelect({ value, onChange, disabled }: RegionSelectProps) {
           ))}
         </ControlSelect>
 
+        {!sidoOnly && (
         <ControlSelect
           value={value.mid?.code ?? ''}
           onChange={handleMidChange}
@@ -91,7 +105,9 @@ export function RegionSelect({ value, onChange, disabled }: RegionSelectProps) {
             </option>
           ))}
         </ControlSelect>
+        )}
 
+        {!sidoOnly && (
         <ControlSelect
           value={value.small?.code ?? ''}
           onChange={handleSmallChange}
@@ -104,6 +120,7 @@ export function RegionSelect({ value, onChange, disabled }: RegionSelectProps) {
             </option>
           ))}
         </ControlSelect>
+        )}
       </div>
     </ControlSection>
   );
