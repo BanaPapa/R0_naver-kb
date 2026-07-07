@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type AppTab = 'naver' | 'kb' | 'settings' | 'admin';
+export type AppTab = 'naver' | 'kb' | 'kbprice' | 'settings' | 'admin';
 
 type ModStatus = 'live' | 'soon';
 
@@ -15,7 +15,7 @@ interface NavModule {
   icon: React.JSX.Element;
 }
 
-// 사이드바 모듈(탭) 정의. 현재 개발 중인 앱은 '매물시세'(naver)뿐이며 나머지는 비활성(개발 예정).
+// 사이드바 모듈(탭) 정의. 활성: KB 시계열 분석(kb)·KB시세(kbprice)·매물시세(naver), 나머지는 비활성(개발 예정).
 const NAV_MODULES: NavModule[] = [
   {
     key: 'kb-timeseries',
@@ -31,8 +31,9 @@ const NAV_MODULES: NavModule[] = [
   },
   {
     key: 'kb-price',
+    tab: 'kbprice',
     label: 'KB시세',
-    status: 'soon',
+    status: 'live',
     icon: (
       <svg className="ic" viewBox="0 0 24 24">
         <path d="M3 21h18" />

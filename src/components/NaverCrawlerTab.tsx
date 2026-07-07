@@ -227,7 +227,8 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus, isAdmin,
                   처음이라면
                 </div>
                 <p className="nv-agent-path-desc">
-                  웹스토어에서 <b>"Chrome에 추가"</b> 한 번이면 설치 완료됩니다.
+                  웹스토어에서 <b>"Estate-OS 매물시세 연결기"</b>를 검색한 뒤{' '}
+                  <b>"Chrome에 추가"</b> 한 번이면 설치 완료됩니다.
                   <br />exe 다운로드·보안 경고 없이 바로 사용할 수 있습니다.
                 </p>
               </div>

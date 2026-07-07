@@ -78,6 +78,13 @@ export default defineConfig(({ mode }) => {
   server: {
     port: 5174,
     proxy: {
+      // KB랜드 시세 API (KB시세 탭) — 커스텀 헤더(webservice) 프리플라이트 회피용 프록시.
+      // 배포 환경은 vercel.json rewrite가 동일 경로를 처리한다.
+      '/api/kbland': {
+        target: 'https://api.kbland.kr',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/kbland/, ''),
+      },
       '/naver-api': {
         target: 'https://fin.land.naver.com/front-api/v1',
         changeOrigin: true,

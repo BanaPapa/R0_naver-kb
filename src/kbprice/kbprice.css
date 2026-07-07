@@ -1,0 +1,208 @@
+/* ===== KB시세 조회 탭 (R2_KB 이식) 전용 스타일 =====
+   호스트 eos 디자인 토큰(--surface, --border, --muted, --blue 등)을 그대로 사용한다. */
+
+/* 검색 패널: 상품/거래 유형 세그먼트 — space-unit-btn 재사용, 가로로 늘려 배치 */
+.kbp-segmented {
+  display: flex;
+  gap: 6px;
+}
+.kbp-segmented .space-unit-btn {
+  flex: 1;
+  height: 34px;
+}
+
+/* 시세 유형 선택 개수 배지 */
+.kbp-count-badge {
+  font-size: 10px;
+  color: var(--blue);
+  background: var(--blue-dim, rgba(79, 141, 255, 0.14));
+  padding: 1px 7px;
+  border-radius: 99px;
+}
+
+/* 체크박스 (시세 유형 · 툴바 필터 공용) */
+.kbp-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+.kbp-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--fg, #e8ecf5);
+  cursor: pointer;
+  user-select: none;
+}
+.kbp-check input[type='checkbox'] {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid var(--border-2, rgba(255, 255, 255, 0.18));
+  background: var(--surface, rgba(255, 255, 255, 0.03));
+  cursor: pointer;
+  position: relative;
+  flex: none;
+}
+.kbp-check input[type='checkbox']:checked {
+  background: var(--teal, #00d4aa);
+  border-color: var(--teal, #00d4aa);
+}
+.kbp-check input[type='checkbox']:checked::after {
+  content: '';
+  position: absolute;
+  left: 4.5px;
+  top: 1.5px;
+  width: 4px;
+  height: 8px;
+  border: solid #04201c;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.kbp-check input[type='checkbox']:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* KPI 그리드 — 4개 카드를 꽉 차게 (호스트 기본 6열 오버라이드).
+   호스트 미디어쿼리(.eos-kpis)보다 우선하도록 복합 선택자로 지정 */
+.eos-kpis.kbp-kpis {
+  grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 1100px) {
+  .eos-kpis.kbp-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* KPI 라벨 아이콘 — 호스트에는 .kl svg 규칙이 없어 크기/선 스타일을 직접 지정 */
+.kbp-kpis .kl svg {
+  width: 17px;
+  height: 17px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  fill: none;
+  flex: none;
+}
+
+/* 오류 배너 */
+.kbp-error {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 14px;
+  padding: 12px 16px;
+  border-radius: var(--r-lg, 12px);
+  background: rgba(251, 107, 124, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(251, 107, 124, 0.35);
+  font-size: 12.5px;
+}
+.kbp-error b {
+  color: var(--red, #fb6b7c);
+  font-size: 13px;
+}
+.kbp-error span {
+  color: var(--muted, #7c879c);
+}
+
+/* 결과 카드: 헤더 + 툴바 + 테이블이 카드 안에서 세로로 쌓이는 구조 */
+.kbp-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+/* 카드 상단 헤더는 매물시세의 .result-header(호스트 index.css)를 그대로 재사용.
+   카드 내부에 놓일 때의 여백만 보정한다. */
+.kbp-card .result-header {
+  padding: 14px 16px 12px;
+  flex: none;
+}
+
+/* 결과 요약 라인 (헤더와 툴바 사이) */
+.kbp-summary {
+  padding: 0 16px 10px;
+  font-size: 12px;
+  color: var(--muted, #7c879c);
+  flex: none;
+}
+.kbp-summary b {
+  color: var(--blue, #4f8dff);
+  font-weight: 700;
+}
+
+/* 필터/표시 옵션 툴바 — 제목줄·테이블과 구분되는 별도 밴드 */
+.kbp-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.07));
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.07));
+  background: rgba(255, 255, 255, 0.018);
+  flex: none;
+}
+.kbp-toolbar .tb-field {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.kbp-toolbar .tb-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted, #7c879c);
+}
+.kbp-toolbar .tb-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border, rgba(255, 255, 255, 0.07));
+  flex: none;
+}
+.kbp-toolbar .tb-grow {
+  flex: 1 1 auto;
+}
+.kbp-dong-select {
+  min-width: 170px;
+}
+.kbp-dong-select .form-select {
+  height: 32px;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 12.5px;
+}
+
+/* 테이블 */
+.kbp-table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.kbp-table-wrap .result-table td.center {
+  text-align: center;
+}
+.kbp-table-wrap .result-table th {
+  white-space: nowrap; /* 좁은 컬럼에서 '세 대 수' 세로 줄바꿈 방지 */
+}
+.kbp-td-name {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 시세 유형 방향 화살표 (상위=적색↑ / 일반=회색− / 하위=청색↓) */
+.kbp-arrow {
+  font-weight: 700;
+}
+.kbp-arrow.up {
+  color: var(--red, #fb6b7c);
+}
+.kbp-arrow.down {
+  color: var(--blue, #4f8dff);
+}
+.kbp-arrow.mid {
+  color: var(--muted, #7c879c);
+}
