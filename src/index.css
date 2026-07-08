@@ -4245,22 +4245,20 @@ thead .col-resize-handle:active {
 .member-btn.reject:hover:not(:disabled) { background: var(--red-dim); }
 
 /* ── 회원 테이블 와이드 레이아웃 (이메일·이름·회사/소속·직급·전화·권한·상태·가입일·마지막접속·작업) ──
-   여유 공간을 텍스트 컬럼 5개(이메일/이름/회사/직급/전화)에 비율로 고르게 분배해
-   특정 컬럼 뒤에만 큰 간격이 생기던 문제를 없앤다. 짧은 배지/날짜/작업 컬럼은 고정폭. */
-.member-table-wide {
-  max-width: 1440px;
-}
+   화면 가로를 꽉 채우되(폭 제한 없음), 여유 공간을 텍스트 컬럼 5개(이메일/이름/회사/직급/전화)에
+   비율로 고르게 분배해 특정 컬럼 뒤에만 큰 간격이 생기지 않게 한다.
+   짧은 배지/날짜/작업 컬럼은 고정폭이라 넓은 화면에서도 커지지 않는다. */
 .member-table-wide .member-row {
   grid-template-columns:
-    minmax(160px, 2fr)    /* 이메일 */
-    minmax(70px, 0.9fr)   /* 이름 */
-    minmax(90px, 1.1fr)   /* 회사/소속 */
-    minmax(58px, 0.7fr)   /* 직급 */
-    minmax(108px, 1fr)    /* 전화번호 */
+    minmax(160px, 2.2fr)  /* 이메일 */
+    minmax(70px, 1fr)     /* 이름 */
+    minmax(90px, 1.3fr)   /* 회사/소속 */
+    minmax(58px, 0.8fr)   /* 직급 */
+    minmax(108px, 1.2fr)  /* 전화번호 */
     62px                  /* 권한 */
     96px                  /* 상태 */
     84px                  /* 가입일 */
-    112px                 /* 마지막 접속 */
+    140px                 /* 마지막 접속 */
     126px;                /* 작업 */
   gap: 10px;
 }

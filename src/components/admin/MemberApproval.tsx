@@ -19,7 +19,7 @@ function formatLastSeen(iso: string | null): string {
   if (!iso) return '';
   const d = new Date(iso);
   const date = d.toLocaleDateString('ko-KR', { year: '2-digit', month: 'numeric', day: 'numeric' });
-  const time = d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  const time = d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
   return `${date} ${time}`;
 }
 
