@@ -1,18 +1,22 @@
-# 청약 아카이브 주간 동기화 — PC 불필요한 클라우드 실행.
+# 청약 아카이브 일간 동기화 — PC 불필요한 클라우드 실행.
 #
 # 청약홈은 ~5년치만 노출하고 시간이 지나면 과거 공고가 목록에서 사라지므로,
-# 매주 최근 4개월 공고(전체 지역)를 라이브 크롤해 Supabase 영구 아카이브
+# 매일 최근 4개월 공고(전체 지역)를 라이브 크롤해 Supabase 영구 아카이브
 # (apply_announcements + 스냅샷 + 상세 원본 표)에 적재한다. 멱등 upsert라
 # 여러 번 실행해도 안전하다. 적재된 아카이브는 검색 API의 1차 소스가 된다.
+#
+# 모집공고일로부터 35일 이내인 공고는 상세(경쟁률 원본 표)가 이미 있어도 매번
+# 재크롤해 덮어쓴다 — 접수 진행 중/당첨자발표 전후로 접수건수·가점이 계속
+# 바뀌기 때문(scripts/apply-archive-sync.mjs 의 REFRESH_WINDOW_DAYS).
 #
 # 시크릿(Settings > Secrets and variables > Actions — KB 시계열 워크플로와 공유):
 #   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
-name: 청약 아카이브 주간 동기화
+name: 청약 아카이브 일간 동기화
 
 on:
   schedule:
-    - cron: '0 18 * * 0' # 일 18:00 UTC = 월 03:00 KST 주 1회
+    - cron: '0 23 * * *' # 매일 23:00 UTC = 08:00 KST
   workflow_dispatch: # 수동 실행 버튼
 
 concurrency:

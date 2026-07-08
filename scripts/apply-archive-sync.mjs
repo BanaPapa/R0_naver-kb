@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 청약 아카이브 주간 동기화 — 청약홈 최근 공고를 Supabase 영구 아카이브에 적재.
+ * 청약 아카이브 일간 동기화 — 청약홈 최근 공고를 Supabase 영구 아카이브에 적재.
  *
  * 청약홈은 ~5년치만 노출하고 시간이 지나면 과거 목록이 사라지므로, 최근 구간을
  * 주기적으로 라이브 크롤해 apply_announcements(+ 스냅샷/상세)에 쌓아둔다.
@@ -9,8 +9,11 @@
  *
  * 동작(멱등 — 몇 번 돌려도 안전):
  *   1) 최근 N개월(기본 4: 이번달 포함) 전체 지역 공고를 페이지 순회 크롤
- *   2) 경쟁률 enrich 후 apply_announcements upsert + 당일 스냅샷 적재
- *   3) 상세(일반/특별공급 원본 표)가 아카이브에 없는 공고만 detail 크롤해 부착
+ *   2) 경쟁률 enrich 후 apply_announcements upsert + 당일 스냅샷 적재 (매번 갱신)
+ *   3) 상세(일반/특별공급 원본 표) — 모집공고일로부터 REFRESH_WINDOW_DAYS 이내인
+ *      공고는 이미 상세가 있어도 매번 재크롤해 덮어쓴다(접수 진행 중/당첨자발표
+ *      전후로 접수건수·가점이 계속 바뀌기 때문). 그보다 오래돼 확정된 공고만
+ *      상세가 이미 있으면 생략.
  *
  * 필요 env: SUPABASE_URL(또는 VITE_SUPABASE_URL) + SUPABASE_SERVICE_ROLE_KEY
  *
@@ -24,6 +27,9 @@ import { archivePage, archiveDetail } from '../lib/applyhome/archive.mjs';
 import { getSupabaseAdmin } from '../lib/supabase/serverClient.mjs';
 
 const PAGE_SIZE = 10;
+// 모집공고일로부터 이 기간(일) 안에는 접수건수·경쟁률·당첨가점이 계속 바뀔 수 있어
+// 상세를 이미 갖고 있어도 매번 재크롤한다. "1개월이면 확정"이라는 기준에 여유를 둔 값.
+const REFRESH_WINDOW_DAYS = 35;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function ym(date) {
@@ -46,21 +52,26 @@ function parseArgs(argv) {
   return a;
 }
 
-// 아카이브에 상세(경쟁률 원본 표)가 이미 있는 공고 집합 — detail 크롤 생략용.
-async function fetchExistingDetailKeys(startYM, endYM) {
+// 상세 크롤을 "생략해도 되는" 공고 집합 — 상세가 이미 있고, 모집공고일이
+// REFRESH_WINDOW_DAYS 보다 오래돼 결과가 더 이상 안 바뀔 거라 간주되는 것만.
+// 최근 공고는 상세가 있어도 이 집합에 넣지 않는다 → 매번 재크롤해 최신값으로 덮어씀.
+async function fetchSkippableDetailKeys(startYM, endYM) {
   const sb = getSupabaseAdmin();
   const keys = new Set();
   const { data, error } = await sb
     .from('apply_announcements')
-    .select('house_manage_no, pblanc_no, detail')
+    .select('house_manage_no, pblanc_no, detail, notice_date')
     .gte('notice_month', startYM)
     .lte('notice_month', endYM);
   if (error) throw new Error(`기존 상세 조회 실패: ${error.message}`);
+  const cutoff = Date.now() - REFRESH_WINDOW_DAYS * 24 * 60 * 60 * 1000;
   for (const r of data ?? []) {
     const rows = r.detail?.competition?.rows;
-    if (Array.isArray(rows) && rows.length > 0) {
-      keys.add(`${r.house_manage_no}:${r.pblanc_no}`);
-    }
+    const hasRows = Array.isArray(rows) && rows.length > 0;
+    if (!hasRows) continue; // 상세 자체가 없으면 당연히 재크롤 대상
+    const noticeTime = r.notice_date ? new Date(r.notice_date).getTime() : NaN;
+    const isFinalized = Number.isFinite(noticeTime) && noticeTime < cutoff;
+    if (isFinalized) keys.add(`${r.house_manage_no}:${r.pblanc_no}`);
   }
   return keys;
 }
@@ -89,10 +100,10 @@ async function fetchExistingDetailKeys(startYM, endYM) {
     await sleep(300); // 차단 회피
   }
 
-  // 2) 상세 미보유 공고만 detail 크롤 → 아카이브 부착
-  const existing = await fetchExistingDetailKeys(args.from, args.to);
-  const need = all.filter((a) => !existing.has(`${a.houseManageNo}:${a.pblancNo || a.houseManageNo}`));
-  console.log(`  상세 크롤 대상: ${need.length}건 (보유 ${existing.size}건 생략)`);
+  // 2) 확정된(모집공고일 35일 초과) 공고만 상세 생략 — 나머지는 매번 재크롤
+  const skippable = await fetchSkippableDetailKeys(args.from, args.to);
+  const need = all.filter((a) => !skippable.has(`${a.houseManageNo}:${a.pblancNo || a.houseManageNo}`));
+  console.log(`  상세 크롤 대상: ${need.length}건 (확정돼 생략 ${skippable.size}건)`);
   let detailOk = 0;
   for (const a of need) {
     try {
