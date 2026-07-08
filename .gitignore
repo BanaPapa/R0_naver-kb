@@ -11,3 +11,9 @@ logs/
 .env.kb-publish
 .vercel
 .env*
+
+# 레거시 분양 통계 ETL 산출물(37MB, xlsx에서 재생성 가능)
+scripts/legacy/*.ndjson
+
+# Chrome 웹스토어 업로드용 확장 zip (빌드 산출물)
+estate-os-extension-*.zip
