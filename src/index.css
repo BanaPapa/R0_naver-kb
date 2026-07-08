@@ -4244,10 +4244,51 @@ thead .col-resize-handle:active {
 }
 .member-btn.reject:hover:not(:disabled) { background: var(--red-dim); }
 
-/* ── 회원 테이블 와이드 레이아웃 (이름·회사·전화 컬럼 추가) ── */
-.member-table-wide .member-row {
-  grid-template-columns: minmax(130px, 1.5fr) 92px minmax(96px, 1fr) 84px 116px 68px 80px 86px 124px;
+/* ── 회원 테이블 와이드 레이아웃 (이메일·이름·회사/소속·직급·전화·권한·상태·가입일·마지막접속·작업) ──
+   여유 공간을 텍스트 컬럼 5개(이메일/이름/회사/직급/전화)에 비율로 고르게 분배해
+   특정 컬럼 뒤에만 큰 간격이 생기던 문제를 없앤다. 짧은 배지/날짜/작업 컬럼은 고정폭. */
+.member-table-wide {
+  max-width: 1440px;
 }
+.member-table-wide .member-row {
+  grid-template-columns:
+    minmax(160px, 2fr)    /* 이메일 */
+    minmax(70px, 0.9fr)   /* 이름 */
+    minmax(90px, 1.1fr)   /* 회사/소속 */
+    minmax(58px, 0.7fr)   /* 직급 */
+    minmax(108px, 1fr)    /* 전화번호 */
+    62px                  /* 권한 */
+    96px                  /* 상태 */
+    84px                  /* 가입일 */
+    112px                 /* 마지막 접속 */
+    126px;                /* 작업 */
+  gap: 10px;
+}
+
+/* 상태 배지 + (미인증 시) 경고 칩을 세로로 정렬 */
+.member-status-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+.member-unconfirmed {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--amber, #e3b341);
+  background: rgba(227, 179, 65, 0.14);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+.member-lastseen {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.member-lastseen.never { color: var(--border-2); font-style: italic; }
 
 /* ── 인라인 편집 셀 ── */
 .member-editable {

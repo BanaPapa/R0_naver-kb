@@ -14,6 +14,9 @@ export interface Profile {
   position: string | null;
   phone: string | null;
   createdAt: string;
+  // 관리자 목록(admin_list_members RPC)에서만 채워진다. 본인 프로필 조회에선 null.
+  lastSignInAt: string | null;    // 마지막 로그인 시각 (없으면 미접속)
+  emailConfirmedAt: string | null; // 이메일 인증 완료 시각 (null이면 미인증 → 로그인 불가)
 }
 
 interface ProfileRow {
@@ -41,6 +44,22 @@ function toProfile(r: ProfileRow): Profile {
     position: r.position,
     phone: r.phone,
     createdAt: r.created_at,
+    lastSignInAt: null,
+    emailConfirmedAt: null,
+  };
+}
+
+// admin_list_members RPC 행 (profiles + auth.users 조인)
+interface MemberRow extends ProfileRow {
+  last_sign_in_at: string | null;
+  email_confirmed_at: string | null;
+}
+
+function toMember(r: MemberRow): Profile {
+  return {
+    ...toProfile(r),
+    lastSignInAt: r.last_sign_in_at,
+    emailConfirmedAt: r.email_confirmed_at,
   };
 }
 
@@ -60,15 +79,13 @@ export async function fetchMyProfile(): Promise<Profile | null> {
   return data ? toProfile(data as ProfileRow) : null;
 }
 
-// 전체 회원 목록 (관리자 전용 — RLS 가 비관리자에게는 본인 행만 반환).
+// 전체 회원 목록 (관리자 전용). auth.users의 마지막 로그인·이메일 인증 정보까지 함께 조회한다.
+// RPC 내부에서 is_admin() 으로 관리자만 허용(비관리자는 0행).
 export async function listProfiles(): Promise<Profile[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase
-    .from('profiles')
-    .select(COLS)
-    .order('created_at', { ascending: false });
+  const { data, error } = await supabase.rpc('admin_list_members');
   if (error) throw error;
-  return ((data as ProfileRow[] | null) ?? []).map(toProfile);
+  return ((data as MemberRow[] | null) ?? []).map(toMember);
 }
 
 // 회원 승인 상태 변경 (관리자 전용 — RLS 가 강제).

@@ -97,6 +97,35 @@ drop policy if exists "profiles_update_admin" on public.profiles;
 create policy "profiles_update_admin" on public.profiles
   for update using (public.is_admin()) with check (public.is_admin());
 
+-- 관리자용 회원 목록: profiles + auth.users(로그인/이메일인증) 조인.
+--   클라이언트(anon 키)는 auth.users에 직접 접근할 수 없으므로 security definer 로 노출하되,
+--   내부에서 is_admin() 으로 관리자만 허용한다(비관리자는 0행 반환).
+--   last_sign_in_at = 마지막 로그인, email_confirmed_at = 이메일 인증 완료 시각(null이면 미인증→로그인 불가).
+create or replace function public.admin_list_members()
+returns table (
+  id                 uuid,
+  email              text,
+  status             text,
+  role               text,
+  name               text,
+  company            text,
+  "position"         text,
+  phone              text,
+  created_at         timestamptz,
+  last_sign_in_at    timestamptz,
+  email_confirmed_at timestamptz
+)
+language sql security definer set search_path = public as $$
+  select p.id, p.email, p.status, p.role, p.name, p.company, p.position, p.phone,
+         p.created_at, u.last_sign_in_at, u.email_confirmed_at
+  from public.profiles p
+  join auth.users u on u.id = p.id
+  where public.is_admin()
+  order by p.created_at desc;
+$$;
+
+grant execute on function public.admin_list_members() to authenticated;
+
 -- 저장 슬롯 (사용자별 고정 20칸, 0~19)
 create table if not exists public.naver_slots (
   id          uuid primary key default gen_random_uuid(),

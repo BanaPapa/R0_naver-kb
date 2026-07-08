@@ -14,6 +14,15 @@ const STATUS_LABEL: Record<ProfileStatus, string> = {
   rejected: '거절됨',
 };
 
+// 마지막 로그인 시각 표시. 한 번도 접속 안 했으면 null.
+function formatLastSeen(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const date = d.toLocaleDateString('ko-KR', { year: '2-digit', month: 'numeric', day: 'numeric' });
+  const time = d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  return `${date} ${time}`;
+}
+
 interface MemberApprovalProps {
   unreadUserIds: Set<string>;
   onThreadRead: () => void;
@@ -202,6 +211,7 @@ function MemberTable({ rows, busyId, onStatusChange, onInfoChange, onOpenDetail,
         <span>권한</span>
         <span>상태</span>
         <span>가입일</span>
+        <span>마지막 접속</span>
         <span>작업</span>
       </div>
       {rows.map((p) => {
@@ -250,11 +260,20 @@ function MemberTable({ rows, busyId, onStatusChange, onInfoChange, onOpenDetail,
               <span className={`member-role${isAdmin ? ' admin' : ''}`}>{isAdmin ? '관리자' : '사용자'}</span>
             </span>
 
-            <span>
+            <span className="member-status-cell">
               <span className={`member-badge ${p.status}`}>{STATUS_LABEL[p.status]}</span>
+              {!isAdmin && p.emailConfirmedAt === null && (
+                <span className="member-unconfirmed" title="가입확인 메일 링크를 아직 클릭하지 않아 로그인할 수 없습니다.">
+                  메일 미인증
+                </span>
+              )}
             </span>
 
             <span className="member-date">{new Date(p.createdAt).toLocaleDateString('ko-KR')}</span>
+
+            <span className={`member-lastseen${p.lastSignInAt ? '' : ' never'}`}>
+              {p.lastSignInAt ? formatLastSeen(p.lastSignInAt) : '미접속'}
+            </span>
 
             <span className="member-actions">
               <button className="member-btn detail" onClick={() => onOpenDetail(p)} title="상세 보기">상세</button>
