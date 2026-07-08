@@ -4,13 +4,18 @@ import type { SearchMeta } from '../types';
 // 검색 요약 로그 (결과 매물 제외). status 는 검색 진행 상태.
 export type SearchLogStatus = 'running' | 'done' | 'error' | 'stopped';
 
+// 어느 탭(앱)에서 발생한 검색인지 구분.
+export type SearchApp = 'naver' | 'kbprice' | 'apply' | 'kb';
+
 export interface SearchLog {
   id: string;
   userId: string;
+  app: SearchApp;
+  summary: string | null;    // 검색내용 한 줄 요약 (매물시세 외 탭용)
   largeName: string | null;
   midName: string | null;
   smallName: string | null;
-  realEstateType: string;
+  realEstateType: string | null;
   tradeType: string | null;
   areaLabel: string | null;
   status: SearchLogStatus;
@@ -23,10 +28,12 @@ export interface SearchLog {
 interface SearchLogRow {
   id: string;
   user_id: string;
+  app: SearchApp | null;
+  summary: string | null;
   large_name: string | null;
   mid_name: string | null;
   small_name: string | null;
-  real_estate_type: string;
+  real_estate_type: string | null;
   trade_type: string | null;
   area_label: string | null;
   status: SearchLogStatus;
@@ -37,12 +44,14 @@ interface SearchLogRow {
 }
 
 const COLS =
-  'id, user_id, large_name, mid_name, small_name, real_estate_type, trade_type, area_label, status, result_count, error_message, created_at, ended_at';
+  'id, user_id, app, summary, large_name, mid_name, small_name, real_estate_type, trade_type, area_label, status, result_count, error_message, created_at, ended_at';
 
 function toSearchLog(r: SearchLogRow): SearchLog {
   return {
     id: r.id,
     userId: r.user_id,
+    app: r.app ?? 'naver',
+    summary: r.summary,
     largeName: r.large_name,
     midName: r.mid_name,
     smallName: r.small_name,
@@ -68,6 +77,7 @@ export async function startSearchLog(meta: SearchMeta): Promise<string | null> {
       .from('search_logs')
       .insert({
         user_id: uid,
+        app: 'naver',
         large_name: meta.largeName || null,
         mid_name: meta.midName || null,
         small_name: meta.smallName || null,
@@ -108,6 +118,32 @@ export async function finishSearchLog(
     if (error) console.warn('검색 로그 종료 기록 실패:', error.message);
   } catch (err) {
     console.warn('검색 로그 종료 기록 예외:', err);
+  }
+}
+
+// 매물시세 외 탭(KB시세/청약/KB분석)용 단발 검색 로그. 결과는 저장하지 않고
+// '언제·어느 탭·무엇을' 한 줄(summary)만 즉시 기록한다(fire-and-forget, 실패해도 무시).
+export async function logSearch(entry: {
+  app: SearchApp;
+  summary: string;
+  resultCount?: number;
+}): Promise<void> {
+  if (!supabase) return;
+  try {
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth.user?.id;
+    if (!uid) return;
+    const { error } = await supabase.from('search_logs').insert({
+      user_id: uid,
+      app: entry.app,
+      summary: entry.summary.slice(0, 300),
+      status: 'done',
+      result_count: entry.resultCount ?? null,
+      ended_at: new Date().toISOString(),
+    });
+    if (error) console.warn('검색 로그 기록 실패:', error.message);
+  } catch (err) {
+    console.warn('검색 로그 기록 예외:', err);
   }
 }
 

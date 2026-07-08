@@ -12,12 +12,29 @@ interface MemberDetailModalProps {
 
 type DetailTab = 'search' | 'inquiry';
 
-function productLabel(code: string): string {
+function productLabel(code: string | null): string {
+  if (!code) return '';
   return REAL_ESTATE_TYPES.find((t) => t.value === code)?.label ?? code;
 }
 
-function regionLabel(l: SearchLog): string {
-  return [l.largeName, l.midName, l.smallName].filter(Boolean).join(' ') || '—';
+const APP_LABELS: Record<SearchLog['app'], string> = {
+  naver: '매물시세',
+  kbprice: 'KB시세',
+  apply: '청약현황',
+  kb: 'KB분석',
+};
+
+// 검색내용 한 줄. summary(타 탭)가 있으면 그대로, 없으면(네이버) 지역·상품·거래·면적으로 조립.
+function searchContent(l: SearchLog): string {
+  if (l.summary) return l.summary;
+  const region = [l.largeName, l.midName, l.smallName].filter(Boolean).join(' ');
+  const parts = [
+    region,
+    productLabel(l.realEstateType),
+    l.tradeType ? (TRADE_TYPE_LABELS[l.tradeType] ?? l.tradeType) : '',
+    l.areaLabel ?? '',
+  ].filter(Boolean);
+  return parts.join(' · ') || '—';
 }
 
 function statusLabel(s: SearchLog['status']): string {
@@ -104,16 +121,13 @@ export function MemberDetailModal({ member, onClose, onThreadRead }: MemberDetai
             ) : (
               <div className="md-log-table">
                 <div className="md-log-row md-log-head">
-                  <span>시각</span><span>지역</span><span>상품</span><span>거래</span>
-                  <span>면적</span><span>결과</span><span>상태</span>
+                  <span>시각</span><span>탭</span><span>검색내용</span><span>결과</span><span>상태</span>
                 </div>
                 {logs.map((l) => (
                   <div className="md-log-row" key={l.id}>
                     <span className="md-log-time">{new Date(l.createdAt).toLocaleString('ko-KR', { hour12: false })}</span>
-                    <span>{regionLabel(l)}</span>
-                    <span>{productLabel(l.realEstateType)}</span>
-                    <span>{l.tradeType ? (TRADE_TYPE_LABELS[l.tradeType] ?? l.tradeType) : '—'}</span>
-                    <span>{l.areaLabel || '—'}</span>
+                    <span className={`md-log-app ${l.app}`}>{APP_LABELS[l.app] ?? l.app}</span>
+                    <span className="md-log-content" title={searchContent(l)}>{searchContent(l)}</span>
                     <span>{l.resultCount != null ? `${l.resultCount.toLocaleString()}건` : '—'}</span>
                     <span className={`md-log-status ${l.status}`}>{statusLabel(l.status)}</span>
                   </div>

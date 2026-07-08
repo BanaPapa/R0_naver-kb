@@ -4,6 +4,7 @@
 import { getRegions } from '../services/kbland';
 import { useKbPriceStore } from './store';
 import { SearchService, type SearchRegion } from './searchService';
+import { logSearch } from '../services/searchLogsRepo';
 
 // KB 시세 API는 법정동코드 10자리를 요구한다 (kbland areaName 응답은 2/5/10자리 혼재)
 export function toFullCode(code: string): string {
@@ -44,6 +45,16 @@ export async function executeKbSearch(): Promise<void> {
 
     const results = await SearchService.executeSearch(searchParams, regions);
     store.setResults(results);
+
+    // 검색내역 로그 (관리자 확인용, 결과는 저장 안 함)
+    const regionLabel = [regionSelection.large?.name, regionSelection.mid?.name, regionSelection.small?.name]
+      .filter(Boolean)
+      .join(' ');
+    void logSearch({
+      app: 'kbprice',
+      summary: `${regionLabel || '지역 미지정'} · 시세 ${searchParams.priceTypes.join('/')}`,
+      resultCount: Array.isArray(results) ? results.length : undefined,
+    });
   } catch (error) {
     store.setError(error instanceof Error ? error.message : '검색 중 오류가 발생했습니다.');
   } finally {

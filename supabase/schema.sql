@@ -192,6 +192,13 @@ create table if not exists public.search_logs (
 create index if not exists idx_search_logs_user_created
   on public.search_logs (user_id, created_at desc);
 
+-- 탭/앱 구분 + 검색내용 한 줄 요약 (매물시세 외 탭도 기록: KB시세/청약/KB분석).
+--   app: 'naver' | 'kbprice' | 'apply' | 'kb'. 결과 매물은 저장하지 않는다(요약만).
+alter table public.search_logs add column if not exists app     text not null default 'naver';
+alter table public.search_logs add column if not exists summary text;
+-- 네이버 전용이던 real_estate_type 을 nullable 로 완화(다른 탭은 summary 로 대체).
+alter table public.search_logs alter column real_estate_type drop not null;
+
 alter table public.search_logs enable row level security;
 
 drop policy if exists "search_logs_insert_own" on public.search_logs;

@@ -23,6 +23,7 @@ import { TokenEstimate } from './TokenEstimate';
 import { ProviderSelector } from './ProviderSelector';
 import { ProviderManager } from './ProviderManager';
 import { getProvider, useProviderStore } from '../../../entities/provider';
+import { logSearch } from '../../../../services/searchLogsRepo';
 
 type Phase = 'idle' | 'loading' | 'done' | 'error';
 type Panel = 'current' | 'custom' | 'slot';
@@ -279,12 +280,17 @@ export const AnalysisModal: React.FC<AnalysisModalProps> = ({ open, onClose }) =
 
   const analyzeCurrent = () => {
     if (!withinRegionLimit(curRegions.length)) return;
+    void logSearch({ app: 'kb', summary: `현재 화면 분석 · ${curRegions.length}개 지역` });
     lastCollectRef.current = currentCollectParams();
     runWith(() => collectCurrentView());
   };
 
   const analyzeCustom = () => {
     if (!withinRegionLimit(pickedRegions.length)) return;
+    void logSearch({
+      app: 'kb',
+      summary: `직접 선택 분석 · ${pickedRegions.map((r) => r.label).join(', ') || '지역 미지정'}`,
+    });
     lastCollectRef.current = customCollectParams();
     runWith(buildCustomRequest);
   };
@@ -327,6 +333,10 @@ export const AnalysisModal: React.FC<AnalysisModalProps> = ({ open, onClose }) =
 
   // 슬롯 분석 실행 — 저장된 지역 그대로(상한 검사 없이) 슬롯 데이터로 분석.
   const analyzeSlot = () => {
+    void logSearch({
+      app: 'kb',
+      summary: `슬롯 분석 · ${pickedRegions.map((r) => r.label).join(', ') || '저장 슬롯'}`,
+    });
     lastCollectRef.current = customCollectParams();
     runWith(buildCustomRequest);
   };

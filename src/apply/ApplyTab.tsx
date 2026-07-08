@@ -10,6 +10,7 @@ import {
   ApplyApartment, ApplySearchMeta, ApplySavedSlot,
 } from './types';
 import { toApplyhomeRegion } from '../services/kbland';
+import { logSearch } from '../services/searchLogsRepo';
 import { useApplySlots } from './useApplySlots';
 import {
   exportApartmentsExcel, exportApartmentsJSON,
@@ -119,6 +120,13 @@ export function ApplyTab({ userId = null }: ApplyTabProps) {
     esRef.current?.close();
 
     const m = meta ?? currentMeta();
+
+    // 검색내역 로그 (관리자 확인용, 결과는 저장 안 함)
+    void logSearch({
+      app: 'apply',
+      summary: `${m.regionName} · ${m.startDate}~${m.endDate}${m.keyword ? ` · ${m.keyword}` : ''}`,
+    });
+
     setActiveMeta(m);
     setSearchRegionName(m.regionName);
     setLoading(true);

@@ -4526,9 +4526,15 @@ thead .col-resize-handle:active {
 .md-tab.active { color: #fff; border-bottom-color: #00d4aa; }
 .md-empty { color: #8b949e; padding: 24px; text-align: center; }
 .md-log-table { display: flex; flex-direction: column; font-size: 13px; }
-.md-log-row { display: grid; grid-template-columns: 150px 1.6fr 1.4fr 60px 90px 70px 64px; gap: 8px; padding: 7px 8px; border-bottom: 1px solid #1b2027; align-items: center; }
+.md-log-row { display: grid; grid-template-columns: 138px 74px minmax(0, 1fr) 66px 58px; gap: 8px; padding: 7px 8px; border-bottom: 1px solid #1b2027; align-items: center; }
 .md-log-head { color: #8b949e; font-weight: 600; position: sticky; top: 0; background: #0d1117; }
 .md-log-time { color: #8b949e; white-space: nowrap; }
+.md-log-app { font-weight: 600; color: #8b949e; white-space: nowrap; }
+.md-log-app.naver { color: #00d4aa; }
+.md-log-app.kbprice { color: #58a6ff; }
+.md-log-app.apply { color: #e3b341; }
+.md-log-app.kb { color: #bc8cff; }
+.md-log-content { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .md-log-status.done { color: #00d4aa; }
 .md-log-status.error { color: #f7768e; }
 .md-log-status.stopped { color: #e3b341; }
