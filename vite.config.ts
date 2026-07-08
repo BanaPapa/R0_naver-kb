@@ -102,6 +102,25 @@ export default defineConfig(({ mode }) => {
   server: {
     port: 5174,
     proxy: {
+      // 국토교통부 실거래가(apis.data.go.kr) — 실거래가 탭.
+      // serviceKey(공공데이터포털 인증키)는 여기(서버측)에서만 주입하며 클라이언트 번들에
+      // 노출되지 않는다. 배포 환경은 vercel.json rewrite → api/molit-proxy.ts 가 동일 처리.
+      '/molit-api': {
+        target: 'https://apis.data.go.kr',
+        changeOrigin: true,
+        secure: false,
+        timeout: 20000,
+        rewrite: (path) => path.replace(/^\/molit-api/, ''),
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => {
+            const raw = env.MOLIT_API_KEY || '';
+            if (!raw) return; // 키 미설정 시 그대로 전달 → data.go.kr가 인증오류 반환(로그로 확인)
+            const serviceKey = raw.includes('%') ? raw : encodeURIComponent(raw);
+            const sep = proxyReq.path.includes('?') ? '&' : '?';
+            proxyReq.path += `${sep}serviceKey=${serviceKey}`;
+          });
+        },
+      },
       // KB랜드 시세 API (KB시세 탭) — 커스텀 헤더(webservice) 프리플라이트 회피용 프록시.
       // 배포 환경은 vercel.json rewrite가 동일 경로를 처리한다.
       '/api/kbland': {

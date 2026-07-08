@@ -6,6 +6,7 @@
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/naver-api/(.*)", "destination": "/api/naver-proxy?__path=$1" },
     { "source": "/naver-new-api/(.*)", "destination": "/api/naver-new-proxy?__path=$1" },
+    { "source": "/molit-api/(.*)", "destination": "/api/molit-proxy?__path=$1" },
     { "source": "/api/kbland/(.*)", "destination": "https://api.kbland.kr/$1" }
   ]
 }
