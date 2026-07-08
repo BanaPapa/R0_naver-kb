@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type AppTab = 'naver' | 'kb' | 'kbprice' | 'apply' | 'settings' | 'admin';
+export type AppTab = 'naver' | 'kb' | 'kbprice' | 'apply' | 'realdeal' | 'settings' | 'admin';
 
 type ModStatus = 'live' | 'soon';
 
@@ -58,8 +58,9 @@ const NAV_MODULES: NavModule[] = [
   },
   {
     key: 'real-deal',
+    tab: 'realdeal',
     label: '실거래가',
-    status: 'soon',
+    status: 'live',
     icon: (
       <svg className="ic" viewBox="0 0 24 24">
         <path d="M3 17l5-6 4 3 6-8" />

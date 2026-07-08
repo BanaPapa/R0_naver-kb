@@ -18,6 +18,7 @@ import { useAdminInbox } from './hooks/useAdminInbox';
 import KbModule from './kb/KbModule';
 import { KbPriceTab } from './kbprice/KbPriceTab';
 import { ApplyTab } from './apply/ApplyTab';
+import { RealDealTab } from './realdeal/RealDealTab';
 import { AdminUiProvider } from './components/admin-ui';
 
 export default function App() {
@@ -43,6 +44,7 @@ export default function App() {
   const isKb = activeTab === 'kb';
   const isKbPrice = activeTab === 'kbprice';
   const isApply = activeTab === 'apply';
+  const isRealdeal = activeTab === 'realdeal';
   const isAdmin = auth.profile?.role === 'admin' && auth.profile?.status === 'approved';
   const adminInbox = useAdminInbox(isAdmin);
 
@@ -58,6 +60,10 @@ export default function App() {
   // 지역별 청약현황 탭도 지연 마운트 + 마운트 유지
   const [applySeen, setApplySeen] = useState(false);
   if (isApply && !applySeen) setApplySeen(true);
+
+  // 실거래가 탭도 지연 마운트 + 마운트 유지(지역/조건 선택·수집 결과 상태 보존)
+  const [realdealSeen, setRealdealSeen] = useState(false);
+  if (isRealdeal && !realdealSeen) setRealdealSeen(true);
 
   // Supabase가 설정된 경우에만 로그인/승인 게이트 적용. 미설정이면 기존처럼 바로 사용.
   // 비밀번호 재설정 링크로 진입 → 다른 모든 게이트보다 우선해 새 비밀번호 화면 표시.
@@ -122,8 +128,8 @@ export default function App() {
       />
 
       <div className="eos-main">
-        {/* KB 탭은 자체 헤더(KbModule 내부)를 렌더하므로 호스트 헤더는 숨긴다. */}
-        {!isKb && (
+        {/* KB·실거래가 탭은 자체 헤더를 렌더하므로 호스트 헤더는 숨긴다. */}
+        {!isKb && !isRealdeal && (
         <header className="eos-hdr">
           <div className="eos-crumb">
             <svg className="home" viewBox="0 0 24 24">
@@ -158,7 +164,7 @@ export default function App() {
 
         {/* 매물시세 탭은 항상 마운트 상태로 두고 다른 탭일 때만 숨긴다.
             (언마운트하면 단위/지역/필터 등 로컬 선택 상태가 초기화되는 문제 방지) */}
-        <div style={{ display: isSettings || isAdminTab || isKb || isKbPrice || isApply ? 'none' : 'contents' }}>
+        <div style={{ display: isSettings || isAdminTab || isKb || isKbPrice || isApply || isRealdeal ? 'none' : 'contents' }}>
           <NaverCrawlerTab crawler={crawler} slots={slots} session={auth.session} agentStatus={agentStatus} isAdmin={isAdmin} onRequestInquiry={openInquiry} />
         </div>
 
@@ -180,6 +186,14 @@ export default function App() {
         {applySeen && (
           <div style={{ display: isApply ? 'contents' : 'none' }}>
             <ApplyTab userId={auth.user?.id ?? null} />
+          </div>
+        )}
+        {/* 실거래가(실거래 다운로드) — 첫 진입 후 마운트 유지, 실거래가 탭일 때만 표시.
+            RealDealTab은 .rd-scope(display:contents) 래퍼로 자체 헤더+작업영역을
+            호스트 eos-main 레이아웃에 그대로 흘려보낸다(KB와 동일 방식). */}
+        {realdealSeen && (
+          <div style={{ display: isRealdeal ? 'contents' : 'none' }}>
+            <RealDealTab />
           </div>
         )}
         {isAdminTab && isAdmin && (
