@@ -239,7 +239,9 @@ export function RealDealTab() {
       });
       setTransProperties(results);
     } catch (e: any) {
-      if (e.message === 'SERVER_UNAVAILABLE') {
+      if (e.message === 'AUTH_ERROR') {
+        setServerError('공공데이터포털 인증키(MOLIT_API_KEY)가 서버에 설정되지 않았거나 유효하지 않습니다 (HTTP 401). data.go.kr 실거래가 API 키를 서버 환경변수(MOLIT_API_KEY)에 등록했는지 확인해 주세요. — 데이터포털 서버 장애가 아니라 키 설정 문제입니다.');
+      } else if (e.message === 'SERVER_UNAVAILABLE') {
         setServerError('국토교통부 실거래가 서버(data.go.kr)가 일시적으로 응답하지 않습니다 (502 Bad Gateway). 자동 재시도에도 실패했습니다. 데이터포털 서버 측 일시 장애이니 잠시 후 다시 시도해 주세요.');
       } else {
         log(`실거래 데이터 오류: ${e.message}`, 'error');

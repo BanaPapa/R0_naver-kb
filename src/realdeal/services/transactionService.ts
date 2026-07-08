@@ -21,15 +21,24 @@ const fetchWithTimeout = async (url: string, ms: number) => {
 };
 
 type TransientError = Error & { transient?: boolean };
+type AuthError = Error & { auth?: boolean };
 
-// 동일출처 프록시로만 호출. 5xx(게이트웨이·백엔드 오류)나 타임아웃은 일시 오류로 표시해 재시도 대상으로 삼는다.
+// 동일출처 프록시로만 호출.
+// - 401/403: 서버측 serviceKey(MOLIT_API_KEY) 미설정·무효 → 인증 오류(재시도 무의미, 명확히 안내)
+// - 5xx/타임아웃: 일시 오류로 표시해 재시도 대상으로 삼는다.
 const fetchViaProxy = async (path: string): Promise<Response> => {
   let sawServerError = false;
   try {
     const response = await fetchWithTimeout(path, 10000);
     if (response.ok) return response;
+    if (response.status === 401 || response.status === 403) {
+      const err: AuthError = new Error(`공공데이터포털 인증키가 설정되지 않았거나 유효하지 않습니다 (HTTP ${response.status}).`);
+      err.auth = true;
+      throw err;
+    }
     if (response.status >= 500) sawServerError = true;
   } catch (e) {
+    if ((e as AuthError)?.auth) throw e; // 인증 오류는 그대로 전달
     sawServerError = true;
     console.warn(`Proxy failed: ${path}`, e);
   }
@@ -184,7 +193,9 @@ export class TransactionService {
       }
 
     } catch (e: any) {
-      // 자동 재시도까지 실패한 일시 서버 오류 → UI가 안내 모달을 띄우도록 신호
+      // 인증키 오류(401/403) → UI가 인증 안내 모달을 띄우도록 신호
+      if (e?.auth) throw new Error('AUTH_ERROR');
+      // 자동 재시도까지 실패한 일시 서버 오류 → UI가 서버장애 안내 모달을 띄우도록 신호
       if (e?.transient) throw new Error('SERVER_UNAVAILABLE');
       console.warn(`Month fetch failed: ${yyyymm}`, e);
       if (e.message?.includes('API 키')) throw e;
