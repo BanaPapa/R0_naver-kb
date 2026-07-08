@@ -38,6 +38,8 @@
   "content_scripts": [
     {
       "matches": [
+        "https://estate-os.xyz/*",
+        "https://www.estate-os.xyz/*",
         "https://estate-os.vercel.app/*",
         "http://localhost/*",
         "http://127.0.0.1/*",
