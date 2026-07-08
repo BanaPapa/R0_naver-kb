@@ -3,6 +3,7 @@
     "api/kb-analysis.ts": { "maxDuration": 300 }
   },
   "rewrites": [
+    { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/naver-api/(.*)", "destination": "/api/naver-proxy?__path=$1" },
     { "source": "/naver-new-api/(.*)", "destination": "/api/naver-new-proxy?__path=$1" },
     { "source": "/api/kbland/(.*)", "destination": "https://api.kbland.kr/$1" }

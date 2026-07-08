@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>개인정보처리방침 — Estate-OS</title>
+  <style>
+    :root {
+      --bg: #0d1117; --surface: #161b22; --border: #21262d;
+      --fg: #e6edf3; --muted: #8b949e; --accent: #00d4aa; --link: #58a6ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic",
+        "Apple SD Gothic Neo", Roboto, sans-serif;
+      line-height: 1.75; font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 56px 22px 96px; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 22px; margin-bottom: 30px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 15px; letter-spacing: 0.02em; }
+    .brand .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); }
+    h1 { font-size: 27px; margin: 18px 0 6px; letter-spacing: -0.01em; }
+    .eff { color: var(--muted); font-size: 14px; }
+    h2 { font-size: 18px; margin: 38px 0 10px; color: var(--fg); }
+    p, li { color: #c9d1d9; }
+    a { color: var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    ul { padding-left: 20px; }
+    li { margin: 6px 0; }
+    .callout {
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 8px; padding: 14px 18px; margin: 16px 0;
+      color: #c9d1d9; font-size: 15px;
+    }
+    strong { color: var(--fg); }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14.5px; }
+    th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    footer { margin-top: 46px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13.5px; }
+    .en { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand"><span class="dot"></span>Estate&nbsp;OS</div>
+      <h1>개인정보처리방침</h1>
+      <div class="eff">시행일: 2026년 7월 8일</div>
+    </header>
+
+    <p>
+      본 방침은 <strong>Estate-OS</strong> 웹 서비스(<a href="https://estate-os.xyz">estate-os.xyz</a>)와
+      크롬 확장 프로그램 <strong>"Estate-OS 매물시세 연결기"</strong>가 이용자의 정보를 어떻게 처리하는지 설명합니다.
+    </p>
+
+    <div class="callout">
+      <strong>핵심 요약.</strong> 확장 프로그램이 사용하는 네이버 로그인 쿠키·인증 토큰은
+      <strong>이용자의 브라우저 안에서만</strong> 사용되며 개발자 서버로 전송·저장되지 않습니다.
+      부동산 검색 <strong>결과 자체는 서버에 저장하지 않습니다.</strong>
+      어떠한 개인정보도 판매하지 않습니다.
+    </div>
+
+    <h2>1. 브라우저 확장 프로그램이 처리하는 정보</h2>
+    <p>
+      네이버가 데이터센터 IP를 차단하므로, 확장 프로그램은 이용자의 브라우저(주거 IP)에서
+      부동산 매물·시세·리뷰 데이터를 대신 조회해 웹앱에 전달합니다. 이 과정에서:
+    </p>
+    <ul>
+      <li>
+        <strong>네이버 세션 쿠키</strong> — 이용자가 브라우저에 로그인해 둔 네이버 쿠키를 네이버 부동산 API 요청에
+        함께 실어 자동 차단(rate limit)을 완화합니다. 이 쿠키는 <strong>브라우저 안에서만</strong> 사용되며,
+        개발자 서버로 전송되거나 저장되지 않습니다.
+      </li>
+      <li>
+        <strong>인증(Authorization) 토큰</strong> — 네이버 new.land 요청에서 캡처해 브라우저의 임시 저장소
+        (<code>chrome.storage.session</code>)에 보관하며, 브라우저 세션이 끝나면 삭제됩니다. 외부로 전송하지 않습니다.
+      </li>
+      <li>
+        <strong>요청 대상</strong> — 모든 조회 요청은 이용자의 브라우저에서 네이버(<code>*.naver.com</code>)와
+        호갱노노(<code>hogangnono.com</code>)로 <strong>직접</strong> 전송됩니다. 개발자 서버를 경유하지 않습니다.
+      </li>
+    </ul>
+    <p>확장 프로그램은 위 정보를 수집·저장·판매하거나 제3자에게 제공하지 않습니다.</p>
+
+    <h2>2. 웹 서비스가 수집하는 정보</h2>
+    <p>회원제 서비스 운영을 위해 다음 정보를 수집·저장합니다(저장소: Supabase).</p>
+    <table>
+      <tr><th>항목</th><th>내용</th><th>목적</th></tr>
+      <tr>
+        <td>계정 정보</td>
+        <td>이메일, 이름, 회사/소속, 직급, 전화번호(선택)</td>
+        <td>회원가입, 관리자 승인, 본인 확인, 서비스 제공</td>
+      </tr>
+      <tr>
+        <td>검색 활동 로그</td>
+        <td>검색 시각, 이용한 탭, 검색 조건 요약(지역·유형 등), 결과 건수<br/><em>※ 검색 결과 매물 데이터는 저장하지 않음</em></td>
+        <td>서비스 운영·개선, 부정 이용 방지</td>
+      </tr>
+    </table>
+
+    <h2>3. 보관 기간 및 파기</h2>
+    <ul>
+      <li>검색 활동 로그는 <strong>수집일로부터 6개월</strong> 경과 시 자동 삭제됩니다.</li>
+      <li>계정 정보는 회원 탈퇴 또는 삭제 요청 시 지체 없이 파기합니다.</li>
+    </ul>
+
+    <h2>4. 제3자 제공 및 처리 위탁</h2>
+    <p>
+      이용자의 개인정보를 판매하거나 마케팅 목적으로 제3자에게 제공하지 않습니다.
+      서비스 운영에 필요한 범위에서 아래 처리자를 이용합니다.
+    </p>
+    <ul>
+      <li><strong>Supabase</strong> — 계정·로그 데이터 저장(데이터베이스·인증)</li>
+      <li><strong>Vercel</strong> — 웹 서비스 호스팅</li>
+    </ul>
+
+    <h2>5. 이용자의 권리</h2>
+    <p>
+      이용자는 언제든지 본인 정보의 열람·정정·삭제를 요청할 수 있습니다.
+      요청은 아래 연락처로 접수해 주세요.
+    </p>
+
+    <h2>6. 문의처</h2>
+    <p>
+      개인정보 처리에 관한 문의는 아래로 연락해 주세요.<br/>
+      이메일: <a href="mailto:cndplan7@gmail.com">cndplan7@gmail.com</a>
+    </p>
+
+    <h2>7. 방침 변경</h2>
+    <p>본 방침이 변경되는 경우, 변경 내용과 시행일을 본 페이지에 게시합니다.</p>
+
+    <footer>
+      © 2026 Estate-OS. This Privacy Policy covers both the Estate-OS web service and the
+      "Estate-OS 매물시세 연결기" Chrome extension. Naver session cookies and authorization tokens
+      used by the extension remain within the user's browser and are never transmitted to or stored
+      by the developer. Search results are not stored. No personal data is sold.
+    </footer>
+  </div>
+</body>
+</html>
