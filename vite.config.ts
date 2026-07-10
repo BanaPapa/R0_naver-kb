@@ -6,6 +6,7 @@ import { issueCrawlToken } from './lib/crawlTokenCore';
 // KB 시계열 분석 모듈의 AI 분석 백엔드(개발 서버 전용 브릿지).
 import { analysisBridge } from './vite-plugins/analysis-bridge';
 import { providerBridge } from './vite-plugins/provider-bridge';
+import { reviewApi } from './vite-plugins/review-api';
 // 지역별 청약현황(청약홈) API — R6_Apply 이식, Node 크롤러 개발 미들웨어.
 // @ts-expect-error — .mjs Node 모듈 (개발 서버 전용, 타입 선언 없음)
 import { applyhomeApiPlugin } from './vite-plugins/applyhome-api.mjs';
@@ -98,7 +99,7 @@ export default defineConfig(({ mode }) => {
   // .env 값이 우선, 없으면 .env.kb-publish 값으로 보충.
   process.env = { ...process.env, ...loadKbPublishEnv(), ...env };
   return {
-  plugins: [react(), naverTokenInjector(), crawlTokenDevApi(env), analysisBridge(), providerBridge(), applyhomeApiPlugin()],
+  plugins: [react(), naverTokenInjector(), crawlTokenDevApi(env), analysisBridge(), providerBridge(), reviewApi(), applyhomeApiPlugin()],
   server: {
     port: 5174,
     proxy: {
