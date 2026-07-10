@@ -19,6 +19,7 @@ import KbModule from './kb/KbModule';
 import { KbPriceTab } from './kbprice/KbPriceTab';
 import { ApplyTab } from './apply/ApplyTab';
 import { RealDealTab } from './realdeal/RealDealTab';
+import { ReviewTab } from './review/ReviewTab';
 import { AdminUiProvider } from './components/admin-ui';
 
 export default function App() {
@@ -45,6 +46,7 @@ export default function App() {
   const isKbPrice = activeTab === 'kbprice';
   const isApply = activeTab === 'apply';
   const isRealdeal = activeTab === 'realdeal';
+  const isReview = activeTab === 'review';
   const isAdmin = auth.profile?.role === 'admin' && auth.profile?.status === 'approved';
   const adminInbox = useAdminInbox(isAdmin);
 
@@ -64,6 +66,9 @@ export default function App() {
   // 실거래가 탭도 지연 마운트 + 마운트 유지(지역/조건 선택·수집 결과 상태 보존)
   const [realdealSeen, setRealdealSeen] = useState(false);
   if (isRealdeal && !realdealSeen) setRealdealSeen(true);
+
+  const [reviewSeen, setReviewSeen] = useState(false);
+  if (isReview && !reviewSeen) setReviewSeen(true);
 
   // Supabase가 설정된 경우에만 로그인/승인 게이트 적용. 미설정이면 기존처럼 바로 사용.
   // 비밀번호 재설정 링크로 진입 → 다른 모든 게이트보다 우선해 새 비밀번호 화면 표시.
@@ -143,15 +148,15 @@ export default function App() {
             <svg className="sep" viewBox="0 0 24 24">
               <path d="M9 6l6 6-6 6" />
             </svg>
-            <b>{isAdminTab ? '회원 승인' : isSettings ? '인증 설정' : isKbPrice ? 'KB시세' : isApply ? '지역별 청약현황' : '매물시세'}</b>
-            {!isSettings && !isAdminTab && !isKbPrice && !isApply && agentStatus.status === 'running' && (
+            <b>{isAdminTab ? '회원 승인' : isSettings ? '인증 설정' : isKbPrice ? 'KB시세' : isApply ? '지역별 청약현황' : isReview ? '입주민 리뷰' : '매물시세'}</b>
+            {!isSettings && !isAdminTab && !isKbPrice && !isApply && !isReview && agentStatus.status === 'running' && (
               agentStatus.connectionValid === false
                 ? <span className="tag tag--warn">재연결 필요</span>
                 : <span className="tag">LIVE</span>
             )}
           </div>
 
-          {!isSettings && !isAdminTab && !isKbPrice && !isApply && (
+          {!isSettings && !isAdminTab && !isKbPrice && !isApply && !isReview && (
             <div className="eos-hdr-right">
               <div className={`eos-ws ${wsState}`}>
                 <span className="wd" />
@@ -164,7 +169,7 @@ export default function App() {
 
         {/* 매물시세 탭은 항상 마운트 상태로 두고 다른 탭일 때만 숨긴다.
             (언마운트하면 단위/지역/필터 등 로컬 선택 상태가 초기화되는 문제 방지) */}
-        <div style={{ display: isSettings || isAdminTab || isKb || isKbPrice || isApply || isRealdeal ? 'none' : 'contents' }}>
+        <div style={{ display: isSettings || isAdminTab || isKb || isKbPrice || isApply || isRealdeal || isReview ? 'none' : 'contents' }}>
           <NaverCrawlerTab crawler={crawler} slots={slots} session={auth.session} agentStatus={agentStatus} isAdmin={isAdmin} onRequestInquiry={openInquiry} />
         </div>
 
@@ -194,6 +199,11 @@ export default function App() {
         {realdealSeen && (
           <div style={{ display: isRealdeal ? 'contents' : 'none' }}>
             <RealDealTab />
+          </div>
+        )}
+        {reviewSeen && (
+          <div style={{ display: isReview ? 'contents' : 'none' }}>
+            <ReviewTab />
           </div>
         )}
         {isAdminTab && isAdmin && (
