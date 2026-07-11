@@ -46,7 +46,7 @@ export function exportToJSON(reviewsByApt: ReviewsByApt): void {
 }
 
 export function exportToMarkdown(reviewsByApt: ReviewsByApt): void {
-  const parts: string[] = [`# 호갱노노 리뷰 수집 결과\n\n수집일: ${today()}\n`];
+  const parts: string[] = [`# 입주민 리뷰 수집 결과\n\n수집일: ${today()}\n`];
   for (const { aptName, reviews } of Object.values(reviewsByApt)) {
     parts.push(`\n## ${aptName} (${reviews.length}개)`);
     reviews.forEach((r, i) => {

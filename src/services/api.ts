@@ -282,7 +282,7 @@ export async function exportExcel(
   if (properties.length === 0) return;
   const workbook = new ExcelJS.Workbook();
   addPropertiesWorksheet(workbook, '매물', properties, priceUnit, areaUnit, realEstateType, detailMap);
-  const name = filenameBase ? `${filenameBase}.xlsx` : `naver_properties_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  const name = filenameBase ? `${filenameBase}.xlsx` : `listings_${new Date().toISOString().slice(0, 10)}.xlsx`;
   await downloadWorkbook(workbook, name);
 }
 
@@ -313,7 +313,7 @@ export async function exportSlotsExcel(
     addPropertiesWorksheet(workbook, name, slot.properties, priceUnit, areaUnit, slot.meta.realEstateType);
   });
 
-  await downloadWorkbook(workbook, `naver_slots_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  await downloadWorkbook(workbook, `listing_slots_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
 // =============================================
@@ -342,7 +342,7 @@ export function exportJSON(properties: Property[], filenameBase?: string, detail
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
-  a.download = filenameBase ? `${filenameBase}.json` : `naver_properties_${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = filenameBase ? `${filenameBase}.json` : `listings_${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -445,7 +445,7 @@ export function exportMarkdown(
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
-  a.download = filenameBase ? `${filenameBase}.md` : `naver_properties_${new Date().toISOString().slice(0, 10)}.md`;
+  a.download = filenameBase ? `${filenameBase}.md` : `listings_${new Date().toISOString().slice(0, 10)}.md`;
   a.click();
   URL.revokeObjectURL(url);
 }

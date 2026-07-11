@@ -221,7 +221,7 @@ export function ReviewTab({ onOpenSettings }: ReviewTabProps) {
       try {
         const r = await collectResidentReviews(apt.id, maxR);
         if (!r.ok && r.error === 'NOT_LOGGED_IN') {
-          showToast('크롬에서 hogangnono.com에 로그인한 뒤 다시 시도해주세요.', 'error');
+          showToast('크롬에서 리뷰 사이트에 로그인한 뒤 다시 시도해주세요. (연결기 확장 팝업에서 로그인 상태를 확인할 수 있습니다)', 'error');
           break;
         }
         if (!r.ok && r.reviews.length === 0) {

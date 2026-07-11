@@ -74,7 +74,7 @@ async function naverRequest(req: NaverReq): Promise<unknown> {
     if (res?.error) throw statusError(`확장 오류: ${res.error}`, 0);
     const status = res?.status ?? 0;
     if (status < 200 || status >= 300) {
-      throw statusError(`Naver API 오류: ${status}`, status);
+      throw statusError(`매물 API 오류: ${status}`, status);
     }
     try {
       return JSON.parse(res?.body ?? '{}');
@@ -109,7 +109,7 @@ async function naverRequest(req: NaverReq): Promise<unknown> {
   }
 
   const resp = await fetch(url, init);
-  if (!resp.ok) throw statusError(`Naver API 오류: ${resp.status}`, resp.status);
+  if (!resp.ok) throw statusError(`매물 API 오류: ${resp.status}`, resp.status);
   return resp.json();
 }
 
@@ -126,7 +126,7 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
         const jitter = Math.floor(Math.random() * 2000); // 0~2s
         const wait = base + jitter;
         console.warn(
-          `[NaverAPI] 429 Too Many Requests — ${Math.round(wait / 1000)}초 대기 후 재시도 (${attempt + 1}/${retries})`,
+          `[ListingAPI] 429 Too Many Requests — ${Math.round(wait / 1000)}초 대기 후 재시도 (${attempt + 1}/${retries})`,
         );
         await new Promise((r) => setTimeout(r, wait));
         continue;
