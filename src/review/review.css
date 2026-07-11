@@ -1,1 +1,1360 @@
-.review-scope{padding:28px 30px 42px;color:var(--fg);max-width:1600px;margin:0 auto}.review-intro{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin:4px 0 26px}.review-eyebrow{font:700 11px var(--mono);letter-spacing:.12em;color:var(--teal)}.review-intro h1{font-size:28px;margin:6px 0}.review-intro p,.review-card p{color:var(--muted);font-size:13px}.review-extension,.review-ai-status{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--surface);padding:10px 12px;border-radius:9px;color:var(--muted);font-size:13px}.review-extension.ready{color:var(--teal);border-color:var(--teal)}.review-grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px}.review-controls,.review-card{border:1px solid var(--border);background:var(--surface);border-radius:var(--r-md);box-shadow:var(--shadow)}.review-controls{padding:18px;height:max-content;display:grid;gap:16px}.review-controls label{font-size:13px;font-weight:700;display:grid;gap:8px}.review-controls select{width:100%;padding:10px;border-radius:8px;background:var(--surface-3);border:1px solid var(--border);color:var(--fg)}.review-controls .control-section{margin:0}.review-primary{border:0;border-radius:8px;display:flex;justify-content:center;align-items:center;gap:7px;padding:11px 12px;background:var(--blue);color:var(--blue-contrast);font:700 13px var(--font);cursor:pointer}.review-primary:disabled{opacity:.55;cursor:not-allowed}.review-workspace{display:grid;gap:16px;min-width:0}.review-message{display:flex;align-items:center;gap:8px;padding:11px 13px;border-radius:8px;background:var(--blue-dim);color:var(--fg-2);font-size:13px}.review-message.error{background:var(--red-dim);color:var(--red)}.review-card header{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:start;justify-content:space-between;gap:10px}.review-card h2{font-size:16px;margin-bottom:4px}.review-text-button{border:0;background:transparent;color:var(--blue);font-size:13px;cursor:pointer}.review-apartment-list{max-height:300px;overflow:auto}.review-apt{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);cursor:pointer}.review-apt input{accent-color:var(--blue)}.review-apt span{display:grid;gap:3px;min-width:0}.review-apt b{font-size:14px}.review-apt small{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.review-apt em{margin-left:auto;font-size:12px;color:var(--teal);font-style:normal}.review-results{min-height:230px}.review-review-list{max-height:400px;overflow:auto;padding:6px 18px}.review-review-list article{padding:12px 0;border-bottom:1px solid var(--border)}.review-review-list b{font-size:12px;color:var(--blue)}.review-review-list article p{margin:6px 0;color:var(--fg-2);white-space:pre-wrap;line-height:1.55}.review-review-list time{font-size:11px;color:var(--muted)}.review-analyze{margin:14px 18px;width:calc(100% - 36px)}.review-analysis>div:last-child{white-space:pre-wrap;padding:18px;line-height:1.75;color:var(--fg-2);font-size:14px}.review-analysis h2{display:flex;gap:7px;align-items:center}.spin{animation:review-spin 1s linear infinite}@keyframes review-spin{to{transform:rotate(360deg)}}@media(max-width:850px){.review-scope{padding:20px 16px}.review-grid{grid-template-columns:1fr}.review-intro{display:grid}.review-controls{grid-template-columns:1fr 1fr}.review-controls .control-section,.review-primary,.review-ai-status{grid-column:1/-1}}@media(max-width:520px){.review-controls{grid-template-columns:1fr}}
+/* ===================================================================
+   입주민 리뷰 워크스페이스 — R7_Review 포트
+   모든 스타일은 .review-scope 하위로 스코프 (전역 오염 금지).
+   색상·반경·폰트 토큰은 R0 전역(index.css)을 그대로 사용한다.
+   =================================================================== */
+
+.review-scope {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+  color: var(--fg);
+}
+
+/* 리뷰 탭: 검색 패널 + 결과 영역 */
+.review-scope .review-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── 검색 서브패널 ── */
+.review-scope .sidebar {
+  width: 288px;
+  min-width: 288px;
+  max-width: 288px;
+  background: rgba(255, 255, 255, 0.025);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.review-scope .sidebar-body {
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.review-scope .search-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.review-scope .section-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.review-scope .sidebar-divider {
+  height: 1px;
+  background: var(--border);
+}
+
+/* RegionSelect(R0 ControlSection) 를 사이드바 폭에 맞춘다 */
+.review-scope .sidebar .ctrl-section {
+  margin: 0;
+}
+.review-scope .sidebar .region-select-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── 폼 컨트롤 ── */
+.review-scope .radio-group {
+  display: flex;
+  gap: 6px;
+}
+.review-scope .radio-chip {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+  user-select: none;
+}
+.review-scope .radio-chip:has(input:checked) {
+  border-color: var(--blue);
+  background: var(--blue-dim);
+  color: var(--blue);
+}
+.review-scope .radio-chip input[type='radio'] {
+  display: none;
+}
+
+.review-scope .field-select {
+  padding: 8px 12px;
+  background: var(--raise);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 16px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237c879c' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+.review-scope .field-select:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-dim);
+}
+.review-scope .field-select option {
+  background: #1a2235;
+}
+
+/* ── 버튼 ── */
+.review-scope .btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 20px;
+  width: 100%;
+  border: 0;
+  border-radius: 11px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 16.5px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 10px 26px -8px var(--blue-dim), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  transition: transform 0.16s var(--ease), box-shadow 0.16s, background 0.18s;
+}
+.review-scope .btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.12);
+  box-shadow: 0 14px 32px -8px var(--blue-dim), inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+.review-scope .btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.review-scope .btn-teal {
+  padding: 8px 16px;
+  background: var(--blue-dim);
+  border: 1px solid var(--blue);
+  border-radius: 8px;
+  color: var(--blue);
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.review-scope .btn-teal:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+.review-scope .btn-teal:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.review-scope .btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--fg-2);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: 0.16s;
+}
+.review-scope .btn-ghost:hover:not(:disabled) {
+  color: #fff;
+  box-shadow: inset 0 0 0 1px var(--border-2);
+}
+.review-scope .btn-ghost:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.review-scope .btn-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.review-scope .btn-icon:hover {
+  background: var(--surface-3);
+  color: var(--fg);
+  border-color: var(--border-2);
+}
+
+.review-scope .nav-analysis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* ── 메인 콘텐츠 ── */
+.review-scope .main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+.review-scope .main-body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 16px 18px;
+}
+.review-scope .review-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  flex: 1;
+}
+
+/* ── 빈 상태 ── */
+.review-scope .empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  padding: 60px 24px;
+}
+.review-scope .empty-state-icon {
+  font-size: 40px;
+  opacity: 0.5;
+}
+.review-scope .empty-state-title {
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--fg-2);
+}
+.review-scope .empty-state-desc {
+  font-size: 16px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.review-scope .empty-steps {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+.review-scope .empty-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  color: var(--muted);
+}
+.review-scope .empty-step-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.review-scope .empty-step.done .empty-step-num {
+  background: var(--blue-dim);
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+/* ── 단지 컨트롤 바 ── */
+.review-scope .apt-controls-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.review-scope .apt-dropdown-wrap {
+  position: relative;
+}
+.review-scope .apt-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--fg-2);
+  font-family: var(--font);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+  white-space: nowrap;
+  min-width: 320px;
+}
+.review-scope .apt-dropdown-trigger:hover:not(:disabled),
+.review-scope .apt-dropdown-trigger.open {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.review-scope .apt-dropdown-trigger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.review-scope .apt-trigger-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+.review-scope .apt-trigger-caret {
+  font-size: 11px;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+.review-scope .apt-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 300;
+  width: 320px;
+  max-height: 420px;
+  overflow-y: auto;
+  background: var(--surface-3);
+  border: 1px solid var(--border-2);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  animation: rv-modal-pop 0.15s var(--ease);
+}
+
+.review-scope .count-badge {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--blue-dim);
+  color: var(--blue);
+}
+.review-scope .review-count-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.review-scope .review-count-btn {
+  padding: 6px 11px;
+  font-size: 15px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-family: var(--font);
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+  white-space: nowrap;
+}
+.review-scope .review-count-btn:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.review-scope .review-count-btn.active {
+  border-color: var(--blue);
+  background: var(--blue-dim);
+  color: var(--blue);
+}
+
+.review-scope .apt-select-all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.review-scope .apt-select-all input {
+  accent-color: var(--blue);
+}
+.review-scope .apt-grid {
+  display: flex;
+  flex-direction: column;
+}
+.review-scope .apt-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+.review-scope .apt-row:last-child {
+  border-bottom: none;
+}
+.review-scope .apt-row:hover {
+  background: var(--surface-2);
+}
+.review-scope .apt-row.selected {
+  background: var(--blue-dim);
+}
+.review-scope .apt-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--blue);
+  flex-shrink: 0;
+}
+.review-scope .apt-info {
+  flex: 1;
+  min-width: 0;
+}
+.review-scope .apt-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.review-scope .apt-name-sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.review-scope .apt-done-btn {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--blue);
+  background: var(--blue-dim);
+  color: var(--blue);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.review-scope .apt-done-btn:hover {
+  filter: brightness(1.12);
+}
+
+/* ── 스켈레톤 ── */
+.review-scope .skel {
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--surface-2) 25%, rgba(255, 255, 255, 0.06) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: rv-skel-shimmer 1.4s ease infinite;
+}
+@keyframes rv-skel-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+.review-scope .loading-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── 리뷰 탭 헤더 ── */
+.review-scope .review-header-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.review-scope .review-tabs {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.review-scope .review-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+  white-space: nowrap;
+}
+.review-scope .review-tab:hover {
+  border-color: var(--border-2);
+  color: var(--fg-2);
+  background: var(--surface-2);
+}
+.review-scope .review-tab.active {
+  border-color: var(--blue);
+  background: var(--blue-dim);
+  color: var(--blue);
+}
+.review-scope .tab-badge {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--mono);
+  padding: 1px 5px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.review-scope .review-tab.active .tab-badge {
+  background: var(--blue-dim);
+}
+
+/* ── 내보내기 ── */
+.review-scope .export-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.review-scope .export-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.review-scope .export-caret {
+  font-size: 10px;
+}
+.review-scope .export-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 160px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-2);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  z-index: 200;
+  animation: rv-modal-pop 0.15s var(--ease);
+}
+.review-scope .export-option {
+  width: 100%;
+  padding: 9px 14px;
+  background: transparent;
+  border: none;
+  color: var(--fg-2);
+  font-family: var(--font);
+  font-size: 15px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.12s;
+}
+.review-scope .export-option:hover {
+  background: var(--surface-2);
+  color: var(--fg);
+}
+.review-scope .export-icon {
+  font-size: 16px;
+  width: 18px;
+  text-align: center;
+}
+
+/* ── 리뷰 패널 ── */
+.review-scope .review-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.review-scope .review-panel-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+  gap: 10px;
+}
+.review-scope .review-select-all-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+}
+.review-scope .review-select-all-ctrl input {
+  accent-color: var(--blue);
+  cursor: pointer;
+}
+.review-scope .btn-delete-reviews {
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--red);
+  border-radius: 6px;
+  background: var(--red-dim);
+  color: var(--red);
+  font-family: var(--font);
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.review-scope .btn-delete-reviews:hover {
+  filter: brightness(1.1);
+}
+.review-scope .review-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.review-scope .review-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.review-scope .review-card:last-child {
+  border-bottom: none;
+}
+.review-scope .review-card:hover {
+  background: var(--surface-2);
+}
+.review-scope .review-card.checked {
+  background: var(--blue-dim);
+}
+.review-scope .review-checkbox {
+  accent-color: var(--blue);
+  cursor: pointer;
+  margin-top: 3px;
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+}
+.review-scope .review-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.review-scope .review-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.review-scope .review-tags:empty {
+  display: none;
+}
+.review-scope .review-date {
+  font-size: 13px;
+  color: var(--muted-2);
+}
+.review-scope .review-text {
+  font-size: 15px;
+  color: var(--fg-2);
+  line-height: 1.65;
+  margin: 0;
+}
+.review-scope .analyze-bar {
+  display: flex;
+  align-items: center;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* 리뷰 없을 때 안내 */
+.review-scope .review-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.8;
+  min-height: 160px;
+}
+
+/* ── 진행 바 ── */
+.review-scope .progress-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.review-scope .progress-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 15px;
+}
+.review-scope .progress-apt {
+  color: var(--fg-2);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 70%;
+}
+.review-scope .progress-count {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.review-scope .progress-track {
+  height: 6px;
+  background: var(--surface-2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.review-scope .progress-fill {
+  height: 100%;
+  background: var(--blue);
+  border-radius: 99px;
+  transition: width 0.35s var(--ease);
+  min-width: 4px;
+}
+
+/* ── 분석 결과 공통 ── */
+.review-scope .analysis-text {
+  font-size: 16px;
+  color: var(--fg-2);
+  line-height: 1.7;
+}
+.review-scope .tag {
+  font-size: 14px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-weight: 500;
+}
+.review-scope .tag-plus {
+  background: var(--teal-dim);
+  color: var(--teal);
+}
+.review-scope .tag-minus {
+  background: var(--red-dim);
+  color: var(--red);
+}
+.review-scope .tag-neutral {
+  background: var(--surface-2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.review-scope .error-bar {
+  padding: 10px 18px;
+  background: var(--red-dim);
+  border-left: 3px solid var(--red);
+  color: var(--red);
+  font-size: 15px;
+}
+
+/* 감성 비율 바 */
+.review-scope .senti-bar {
+  display: flex;
+  height: 12px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.review-scope .senti-seg {
+  height: 100%;
+}
+.review-scope .senti-seg.pos {
+  background: var(--teal, #2dd4bf);
+}
+.review-scope .senti-seg.neu {
+  background: var(--muted-2, #6b7684);
+}
+.review-scope .senti-seg.neg {
+  background: var(--red);
+}
+.review-scope .senti-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.review-scope .senti-legend b {
+  color: var(--fg-2);
+  font-weight: 700;
+}
+.review-scope .senti-legend .dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.review-scope .senti-legend .dot.pos {
+  background: var(--teal, #2dd4bf);
+}
+.review-scope .senti-legend .dot.neu {
+  background: var(--muted-2, #6b7684);
+}
+.review-scope .senti-legend .dot.neg {
+  background: var(--red);
+}
+
+/* 분류별 표 */
+.review-scope .cat-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 2px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.review-scope .cat-head .cat-name {
+  flex: 0 0 72px;
+}
+.review-scope .cat-head-plus {
+  flex: 1;
+  color: var(--teal);
+}
+.review-scope .cat-head-minus {
+  flex: 1;
+  color: var(--red);
+}
+.review-scope .cat-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.review-scope .cat-row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  padding: 8px 2px;
+  border-top: 1px solid var(--border);
+}
+.review-scope .cat-name {
+  flex: 0 0 72px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+}
+.review-scope .cat-cols {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  min-width: 0;
+}
+.review-scope .cat-col {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-content: flex-start;
+}
+.review-scope .cat-empty {
+  color: var(--muted-2);
+  font-size: 14px;
+}
+
+.review-scope .analysis-conclusion {
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--blue);
+}
+
+/* ── 분석 모달 ── */
+.review-scope .modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(6, 9, 15, 0.82);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.review-scope .modal-panel {
+  background: var(--raise);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: min(860px, 100%);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+.review-scope .modal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.review-scope .modal-tabs {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+}
+.review-scope .modal-tab {
+  height: 34px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.review-scope .modal-tab.active {
+  background: var(--blue-dim);
+  color: var(--blue);
+}
+.review-scope .modal-tab:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.review-scope .modal-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+.review-scope .modal-close:hover {
+  color: var(--fg);
+  background: var(--surface-2);
+}
+.review-scope .modal-body {
+  padding: 16px 18px;
+  overflow-y: auto;
+}
+.review-scope .modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.review-scope .modal-empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 48px 0;
+  font-size: 15px;
+}
+.review-scope .status-ok {
+  color: var(--blue);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 히스토리 목록 */
+.review-scope .hist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.review-scope .hist-list-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.review-scope .hist-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: border-color 0.12s;
+}
+.review-scope .hist-item:hover {
+  border-color: var(--blue);
+}
+.review-scope .hist-item-apt {
+  font-weight: 700;
+  color: var(--fg);
+  font-size: 14px;
+}
+.review-scope .hist-item-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+.review-scope .hist-item-date {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted-2);
+}
+.review-scope .hist-item-del {
+  color: var(--muted-2);
+  font-size: 13px;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.review-scope .hist-item-del:hover {
+  color: var(--red);
+  background: var(--red-dim);
+}
+
+/* ── 분석 뷰 (시각화) ── */
+.review-scope .av {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.review-scope .av section {
+  display: flex;
+  flex-direction: column;
+}
+.review-scope .av-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+.review-scope .av-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 4px;
+}
+.review-scope .av-meta-apt {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--fg);
+}
+.review-scope .av-meta-sub {
+  font-size: 13px;
+  color: var(--muted);
+}
+.review-scope .av-hint {
+  font-size: 12px;
+  color: var(--muted-2);
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+.review-scope .av-rel-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.review-scope .av-rel-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+.review-scope .av-rel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg);
+  margin-bottom: 10px;
+}
+.review-scope .av-rel-level {
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 99px;
+  font-weight: 700;
+}
+.review-scope .av-rel-level.lv-높음 {
+  background: var(--teal-dim);
+  color: var(--teal);
+}
+.review-scope .av-rel-level.lv-보통 {
+  background: var(--blue-dim);
+  color: var(--blue);
+}
+.review-scope .av-rel-level.lv-낮음 {
+  background: var(--red-dim);
+  color: var(--red);
+}
+.review-scope .av-rel-score {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--blue);
+}
+.review-scope .av-rel-factors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.review-scope .av-gauge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.review-scope .av-gauge-track {
+  flex: 1;
+  height: 10px;
+  border-radius: 99px;
+  background: var(--surface);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.review-scope .av-gauge-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s;
+}
+.review-scope .av-gauge-val {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--fg);
+  min-width: 28px;
+  text-align: right;
+}
+.review-scope .av-chart {
+  width: 100%;
+  overflow: hidden;
+}
+.review-scope .av-div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.review-scope .av-div-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.review-scope .av-div-name {
+  flex: 0 0 68px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg);
+}
+.review-scope .av-div-track {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  height: 22px;
+}
+.review-scope .av-div-neg {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+.review-scope .av-div-pos {
+  flex: 1;
+  display: flex;
+  justify-content: flex-start;
+}
+.review-scope .av-div-mid {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+}
+.review-scope .av-div-fill {
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  min-width: 18px;
+  padding: 0 4px;
+}
+.review-scope .av-div-fill.neg {
+  background: var(--red);
+  border-radius: 5px 0 0 5px;
+}
+.review-scope .av-div-fill.pos {
+  background: var(--teal, #2dd4bf);
+  border-radius: 0 5px 5px 0;
+}
+
+/* ── 스피너 ── */
+.review-scope .spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: rv-spin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
+/* ── 토스트 ── */
+.review-scope .toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.review-scope .toast {
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-2);
+  color: var(--fg);
+  font-size: 15px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: rv-toast-in 0.2s var(--ease);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 320px;
+}
+.review-scope .toast.success {
+  border-left: 3px solid var(--teal);
+}
+.review-scope .toast.error {
+  border-left: 3px solid var(--red);
+}
+.review-scope .toast.warning {
+  border-left: 3px solid var(--amber);
+}
+.review-scope .toast.info {
+  border-left: 3px solid var(--blue);
+}
+
+/* ── 애니메이션 (리뷰 모듈 전용 네임스페이스) ── */
+@keyframes rv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* ReviewPanel RefreshIcon 인라인 style이 참조하는 spin 키프레임 */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes rv-modal-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes rv-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .review-scope .sidebar {
+    width: 240px;
+    min-width: 240px;
+    max-width: 240px;
+  }
+  .review-scope .apt-dropdown-trigger {
+    min-width: 200px;
+  }
+}
