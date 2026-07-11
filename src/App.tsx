@@ -203,7 +203,7 @@ export default function App() {
         )}
         {reviewSeen && (
           <div style={{ display: isReview ? 'contents' : 'none' }}>
-            <ReviewTab />
+            <ReviewTab onOpenSettings={() => setActiveTab('settings')} />
           </div>
         )}
         {isAdminTab && isAdmin && (

@@ -14,6 +14,9 @@ interface AnalysisRequestLike {
   question?: string;
   provider?: string;
   model?: string | null;
+  // kind==='chat' 패스스루용 (리뷰 분석 등 임의 system/user 프롬프트).
+  system?: string;
+  user?: string;
 }
 
 // 시스템 프롬프트를 후보 경로 순서로 읽는다. 실제 파일은 src/kb/.../prompts 에 있으며
@@ -69,8 +72,13 @@ export async function runProviderAnalysis(root: string, id: string, req: Analysi
     if (!def || def.apiShape === 'claude-bridge') throw new Error(`프록시 대상이 아닌 프로바이더: ${req.provider}`);
     const cred = await readOne(root, def.id);
     if (!cred) throw new Error(`연결되지 않은 프로바이더: ${def.id}`);
+    // kind==='chat' 이면 클라이언트가 조립한 system/user를 그대로 사용(메시지 빌더 우회).
     const { system, user } =
-      req.kind === 'ask' ? await buildAskMessages(root, req) : await buildMessages(root, req);
+      req.kind === 'chat'
+        ? { system: req.system ?? '', user: req.user ?? '' }
+        : req.kind === 'ask'
+          ? await buildAskMessages(root, req)
+          : await buildMessages(root, req);
     const eff = effectiveDef(def, cred);
     const { text, usage } = await getAdapter(eff.apiShape).chat(eff, cred, { system, user, model: req.model ?? '' });
     await fs.writeFile(path.join(responses, `${id}.md`), text || '_빈 응답_', 'utf8');
