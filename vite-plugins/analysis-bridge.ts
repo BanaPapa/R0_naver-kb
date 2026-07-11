@@ -107,6 +107,9 @@ export function analysisBridge(): Plugin {
                   question: parsed.question as string | undefined,
                   provider: parsed.provider as string | undefined,
                   model: (parsed.model ?? null) as string | null,
+                  // kind==='chat' 패스스루 (리뷰 분석)
+                  system: parsed.system as string | undefined,
+                  user: parsed.user as string | undefined,
                 });
               }
               sendJson(res, 200, { id, status: 'pending' });
