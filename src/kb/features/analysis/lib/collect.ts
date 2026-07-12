@@ -59,6 +59,32 @@ function changeByRegion(rows: ChartRow[], regions: string[], from: string, to: s
   return sliceByRegion(changeRows, regions, from, to);
 }
 
+// 누적 변동률(%) — 대시보드(ChartDashboard/MonthlyChartDashboard)의 toCumulative와 동일 로직.
+// 표시 구간(from~to)의 첫 유효값을 0으로 해 구간 끝까지의 누적 변화를 구한다.
+function cumulativeByRegion(rows: ChartRow[], regions: string[], from: string, to: string): Record<string, SeriesPoint[]> {
+  const sliced = rows.filter(r => r.date >= from && r.date <= to);
+  const ref: Record<string, number> = {};
+  for (const region of regions) {
+    for (const row of sliced) {
+      const v = row[region];
+      if (typeof v === 'number') {
+        ref[region] = v;
+        break;
+      }
+    }
+  }
+  const out: Record<string, SeriesPoint[]> = {};
+  for (const region of regions) {
+    const base = ref[region];
+    out[region] = sliced.map(r => {
+      const v = r[region];
+      const value = typeof v === 'number' && typeof base === 'number' && base !== 0 ? (v / base - 1) * 100 : null;
+      return { date: r.date, value };
+    });
+  }
+  return out;
+}
+
 function makeDataset(
   tab: AnalysisTab,
   metric: string,
@@ -88,6 +114,8 @@ function weeklyPriceDatasets(weeklyData: WeeklyDataRow[], regions: string[], fro
     makeDataset('weekly-price', 'jeonseIndex', '아파트 전세가격지수', '', sliceByRegion(jeonseIdx, regions, from, to)),
     makeDataset('weekly-price', 'saleChange', '매매 증감률(전주대비)', '%', changeByRegion(saleIdx, regions, from, to)),
     makeDataset('weekly-price', 'jeonseChange', '전세 증감률(전주대비)', '%', changeByRegion(jeonseIdx, regions, from, to)),
+    makeDataset('weekly-price', 'saleCumulative', '매매 누적변동률', '%', cumulativeByRegion(saleIdx, regions, from, to)),
+    makeDataset('weekly-price', 'jeonseCumulative', '전세 누적변동률', '%', cumulativeByRegion(jeonseIdx, regions, from, to)),
   ]);
 }
 
@@ -143,6 +171,8 @@ function monthlyPriceDatasets(priceData: MonthlyPriceRegion[], regions: string[]
     makeDataset('monthly-price', 'jeonseIndex', '아파트 전세가격지수', '', sliceByRegion(jeonseIdx, regions, from, to)),
     makeDataset('monthly-price', 'saleChange', '매매 증감률(전월대비)', '%', changeByRegion(saleIdx, regions, from, to)),
     makeDataset('monthly-price', 'jeonseChange', '전세 증감률(전월대비)', '%', changeByRegion(jeonseIdx, regions, from, to)),
+    makeDataset('monthly-price', 'saleCumulative', '매매 누적변동률', '%', cumulativeByRegion(saleIdx, regions, from, to)),
+    makeDataset('monthly-price', 'jeonseCumulative', '전세 누적변동률', '%', cumulativeByRegion(jeonseIdx, regions, from, to)),
   ]);
 }
 
