@@ -1,15 +1,61 @@
-// Estate-OS 매물시세 연결기 — 백그라운드 서비스워커
+// Estate-OS 커넥터 — 백그라운드 서비스워커
 //
 // 역할: 웹앱(content-bridge 경유)의 요청을 받아 네이버 fin.land/new.land를
 // 사용자 브라우저(주거 IP)에서 직접 호출하고 JSON을 돌려준다.
 // 브라우저의 네이버 세션 쿠키는 host_permissions 덕분에 fetch에 자동 포함된다.
 
-const VERSION = '2.1.0';
+const VERSION = '2.2.0';
 const FIN_LAND_BASE = 'https://fin.land.naver.com/front-api/v1';
 const NEW_LAND_BASE = 'https://new.land.naver.com';
 
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36';
+
+// 설치/업데이트 즉시 "원스톱 재연결"을 처리한다:
+//   1) 이미 열려 있는 Estate-OS 앱 탭을 새로고침 (설치 시 기존 탭엔 content script가
+//      자동 주입되지 않으므로, 사용자가 F5를 누르지 않아도 재연결되게 한다)
+//   2) 앱 탭으로 포커스를 되돌리고
+//   3) 설치를 위해 열려 있던 이 확장의 웹스토어 탭을 자동으로 닫는다
+// → 사용자는 웹스토어에서 "Chrome에 추가"만 하면 원래 앱 화면으로 자동 복귀한다.
+// tabs 권한으로 동작(호스트 권한 불필요). chrome.runtime.id 로 내 확장 상세 탭만 골라 닫는다.
+const APP_TAB_MATCHES = [
+  'https://estate-os.xyz/*',
+  'https://www.estate-os.xyz/*',
+  'https://estate-os.vercel.app/*',
+  'http://localhost:5173/*',
+  'http://localhost:5174/*',
+  'http://127.0.0.1:5173/*',
+  'http://127.0.0.1:5174/*',
+];
+
+chrome.runtime.onInstalled.addListener(async (details) => {
+  if (details.reason !== 'install' && details.reason !== 'update') return;
+  try {
+    const appTabs = await chrome.tabs.query({ url: APP_TAB_MATCHES });
+    if (appTabs.length === 0) return; // 열린 앱 탭이 없으면 아무것도 하지 않는다
+
+    // 1) 앱 탭 새로고침(재연결)
+    for (const t of appTabs) {
+      if (t.id != null) chrome.tabs.reload(t.id).catch(() => {});
+    }
+    // 2) 앱 탭으로 포커스 복귀
+    const target = appTabs[0];
+    if (target.id != null) chrome.tabs.update(target.id, { active: true }).catch(() => {});
+    if (target.windowId != null) chrome.windows.update(target.windowId, { focused: true }).catch(() => {});
+
+    // 3) 설치로 열려 있던 이 확장의 웹스토어 탭만 닫는다(업데이트 시엔 스토어 탭이 없음)
+    if (details.reason === 'install') {
+      const storeTabs = await chrome.tabs.query({ url: 'https://chromewebstore.google.com/detail/*' });
+      for (const t of storeTabs) {
+        if (t.id != null && t.url && t.url.includes(chrome.runtime.id)) {
+          chrome.tabs.remove(t.id).catch(() => {});
+        }
+      }
+    }
+  } catch (_) {
+    // 탭 조작 실패는 무시 — 사용자는 "연결 재시도"(F5)로 폴백 가능
+  }
+});
 
 // new.land /api/articles 는 Bearer JWT 필수(로그인 자격증명이 아니라 네이버 프론트가
 // 발급하는 ~3시간짜리 HS256 토큰). webRequest로 new.land SPA의 요청 헤더에서 가로챈다.

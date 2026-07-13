@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Estate-OS 매물시세 연결기",
-  "version": "2.1.0",
+  "name": "Estate-OS 커넥터",
+  "version": "2.2.0",
   "description": "Estate-OS 웹앱의 부동산 매물·시세·리뷰 조회를 사용자 브라우저에서 처리하도록 연결하는 확장입니다.",
   "icons": {
     "16": "icons/icon16.png",
@@ -9,7 +9,7 @@
     "128": "icons/icon128.png"
   },
   "action": {
-    "default_title": "Estate-OS 매물시세 연결기",
+    "default_title": "Estate-OS 커넥터",
     "default_popup": "popup.html"
   },
   "background": {
