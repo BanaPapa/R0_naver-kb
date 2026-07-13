@@ -2996,7 +2996,7 @@ thead .col-resize-handle:active {
   text-align: center;
   gap: 28px;
   padding: 56px 48px;
-  max-width: 900px;
+  max-width: 1140px;
   width: 100%;
   color: var(--muted);
 }

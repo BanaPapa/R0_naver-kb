@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { detectExtension } from '../services/extensionBridge';
+import { AgentInstallGate } from '../components/AgentInstallGate';
 import { useProviderStore } from '../kb/entities/provider';
 import { collectResidentReviews } from './reviewBridge';
 import { analyzeReviews } from './lib/analyze';
@@ -88,7 +89,9 @@ export function ReviewTab({ onOpenSettings }: ReviewTabProps) {
   const refreshProviders = useProviderStore((s) => s.refreshProviders);
 
   /* ── 크롬 확장 릴레이 ── */
-  const [extConnected, setExtConnected] = useState(false);
+  // null=확인 중 · false=미설치(설치 게이트 표시) · true=설치됨. 매물시세 탭과 동일한
+  // 설치 게이트를 선제적으로 띄우기 위해 3-상태로 둔다(설치된 사용자에게 게이트 깜빡임 방지).
+  const [extConnected, setExtConnected] = useState<boolean | null>(null);
   useEffect(() => {
     void detectExtension().then(setExtConnected);
     void refreshProviders().catch(() => undefined);
@@ -201,7 +204,7 @@ export function ReviewTab({ onOpenSettings }: ReviewTabProps) {
     if (useExt !== extConnected) setExtConnected(useExt);
 
     if (!useExt) {
-      showToast('Estate-OS 연결기 확장을 설치·활성화한 뒤 페이지를 새로고침해주세요.', 'warning');
+      showToast('Estate-OS 커넥터 확장을 설치·활성화한 뒤 페이지를 새로고침해주세요.', 'warning');
       return;
     }
 
@@ -324,6 +327,26 @@ export function ReviewTab({ onOpenSettings }: ReviewTabProps) {
   const showContent = apts.length > 0 || isSearching || !!searchError;
   const hasReviews = Object.keys(reviewsByApt).length > 0;
   const fetchedAptIds = new Set(Object.keys(reviewsByApt));
+
+  // 확장 미설치 → 매물시세와 동일한 설치 게이트를 탭 전체에 선제 표시.
+  // (입주민 리뷰의 핵심인 리뷰 수집이 확장 없이는 동작하지 않으므로 검색 진입 전에 안내한다.)
+  if (extConnected === false) {
+    // review-scope는 가로 flex라 그대로 두면 eos-state-screen(flex:1·height:0)이 접힌다.
+    // 세로 flex로 바꿔 게이트가 매물시세와 동일하게 전체 영역을 채우게 한다.
+    return (
+      <div className="review-scope" style={{ flexDirection: 'column' }}>
+        <AgentInstallGate />
+      </div>
+    );
+  }
+  // 확인 중 — 설치된 사용자에게 게이트가 잠깐 떴다 사라지는 깜빡임 방지용 최소 로딩.
+  if (extConnected === null) {
+    return (
+      <div className="review-scope" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', color: 'var(--muted)' }}>
+        연결 확인 중…
+      </div>
+    );
+  }
 
   return (
     <div className="review-scope">

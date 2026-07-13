@@ -1,4 +1,4 @@
-// 브라우저 확장(Estate-OS 매물시세 연결기) 연동 계층.
+// 브라우저 확장(Estate-OS 커넥터) 연동 계층.
 //
 // 기존에는 로컬 Electron 에이전트(http://127.0.0.1:47328)에 HTTP로 붙었으나,
 // 이제 브라우저 확장에 postMessage RPC로 붙는다. 함수 시그니처는 useAgentStatus
@@ -6,13 +6,12 @@
 
 import { callExtension, detectExtension } from './extensionBridge';
 
-// 크롬 웹스토어 설치 페이지.
-// 아직 스토어 미게시 상태라 자리표시자 URL은 웹스토어 홈으로 리다이렉트된다.
-// 게시 후 VITE_EXTENSION_STORE_URL 환경변수(또는 아래 기본값)를
-// 실제 상세 페이지(https://chromewebstore.google.com/detail/<slug>/<확장ID>)로 교체할 것.
+// 크롬 웹스토어 설치 페이지 (게시 완료 — 확장 상세 페이지로 바로 이동).
+// 확장 ID: gpaicndndkdkljpocmoiohgahofbdhpi ("Estate-OS 커넥터")
+// 필요 시 VITE_EXTENSION_STORE_URL 환경변수로 오버라이드 가능.
 export const EXTENSION_STORE_URL =
   (import.meta.env.VITE_EXTENSION_STORE_URL as string | undefined) ??
-  'https://chromewebstore.google.com/detail/estate-os-connector';
+  'https://chromewebstore.google.com/detail/estate-os-%EB%A7%A4%EB%AC%BC%EC%8B%9C%EC%84%B8-%EC%97%B0%EA%B2%B0%EA%B8%B0/gpaicndndkdkljpocmoiohgahofbdhpi';
 
 export type AgentStatus = 'unknown' | 'running' | 'offline';
 

@@ -12,7 +12,8 @@ import type { AgentStatusHook } from '../hooks/useAgentStatus';
 import { CrawlerConfig, SavedSlot } from '../types';
 import { AreaUnit, PriceUnit } from '../services/api';
 import { setNaverBases, setNaverCrawlToken } from '../services/naverApi';
-import { fetchCrawlToken, EXTENSION_STORE_URL } from '../services/agentApi';
+import { fetchCrawlToken } from '../services/agentApi';
+import { AgentInstallGate } from './AgentInstallGate';
 import { startSearchLog, finishSearchLog } from '../services/searchLogsRepo';
 
 interface NaverCrawlerTabProps {
@@ -42,7 +43,6 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus, isAdmin,
     connectionReason,
     loginLoading,
     loginError,
-    recheck: recheckAgent,
     triggerLogin,
   } = agentStatus;
 
@@ -81,10 +81,6 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus, isAdmin,
       setNaverCrawlToken(null);
     }
   }, [agentRunStatus, session, isAdmin]);
-
-  const openStore = () => {
-    window.open(EXTENSION_STORE_URL, '_blank', 'noreferrer');
-  };
 
   const canSave = state.properties.length > 0 && state.lastConfig !== null;
   const savedCount = slots.slots.filter(Boolean).length;
@@ -200,68 +196,7 @@ export function NaverCrawlerTab({ crawler, slots, session, agentStatus, isAdmin,
   // 복귀 시 polling 순간 변동으로 결과 화면(SearchPanel/ResultTable)이 언마운트되어
   // 검색조건·정렬·필터·상세가격 캐시가 초기화되던 문제 방지.
   if (!stableRunning && state.properties.length === 0) {
-    return (
-      <div className="eos-state-screen">
-        <div className="nv-agent-offline">
-          <div className="nv-agent-offline-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-              <circle cx="12" cy="12" r="9" />
-              <path d="M8 12h8M12 8v8" strokeLinecap="round" />
-            </svg>
-          </div>
-          <h2>매물시세 연결기(브라우저 확장)가 필요합니다</h2>
-          <p>
-            매물 검색은 <b>브라우저 확장</b>을 통해
-            <br />
-            이 PC(내 인터넷)에서 직접 조회하는 방식으로 동작합니다.
-            <br />
-            크롬·엣지에서 <b>한 번만 설치</b>하면 됩니다. 별도 프로그램 다운로드는 없습니다.
-          </p>
-
-          <div className="nv-agent-paths">
-            {/* 처음 설치 */}
-            <div className="nv-agent-path-section nv-agent-path-install">
-              <div className="nv-agent-path-info">
-                <div className="nv-agent-path-label">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={16} height={16}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                  처음이라면
-                </div>
-                <p className="nv-agent-path-desc">
-                  웹스토어에서 <b>"Estate-OS 매물시세 연결기"</b>를 검색한 뒤{' '}
-                  <b>"Chrome에 추가"</b> 한 번이면 설치 완료됩니다.
-                  <br />exe 다운로드·보안 경고 없이 바로 사용할 수 있습니다.
-                </p>
-              </div>
-              <div className="nv-agent-path-action">
-                <button className="btn-primary" onClick={openStore}>웹스토어에서 설치</button>
-              </div>
-            </div>
-
-            {/* 이미 설치한 경우 */}
-            <div className="nv-agent-path-section">
-              <div className="nv-agent-path-info">
-                <div className="nv-agent-path-label">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={16} height={16}><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                  이미 설치했다면
-                </div>
-                <p className="nv-agent-path-desc">
-                  확장을 설치했는데도 이 화면이 보이면 버튼을 눌러 다시 연결하세요.
-                  <br />브라우저 확장 목록에서 <b>사용 설정</b>이 켜져 있는지도 확인해 주세요.
-                </p>
-              </div>
-              <div className="nv-agent-path-action">
-                <button className="btn-outline" onClick={recheckAgent}>연결 재시도</button>
-              </div>
-            </div>
-          </div>
-
-          <div className="nv-agent-reassure">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} width={16} height={16}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            로그인 정보는 <b>내 브라우저에만</b> 있고 외부 서버로 전송되지 않습니다. 확장은 매물 검색에 필요한 사이트 외에는 접근하지 않습니다.
-          </div>
-        </div>
-      </div>
-    );
+    return <AgentInstallGate />;
   }
 
   // 네이버 로그인은 필수가 아니다. 확장이 브라우저의 익명 세션 쿠키로 검색을 수행하며,
