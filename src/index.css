@@ -1803,6 +1803,28 @@ body {
   background: var(--blue);
   color: var(--blue-contrast, #0b0f19);
 }
+/* 네이티브 드롭다운 팝업을 현재 테마에 맞춰 렌더(옵션·스크롤·하이라이트 톤 일치). */
+:root[data-theme='dark'] .form-select {
+  color-scheme: dark;
+}
+:root[data-theme='light'] .form-select {
+  color-scheme: light;
+}
+/* optgroup 그룹 라벨(집계 지역 / 시·도) — 옵션과 같은 배경, 살짝 muted한 볼드로 통일.
+   지정 없으면 브라우저 기본 회색이라 옵션과 톤이 어긋나 보인다. */
+.form-select optgroup {
+  background: var(--raise);
+  color: var(--muted);
+  font-weight: 700;
+}
+.form-select optgroup option {
+  color: var(--fg);
+  font-weight: var(--ctrl-item-weight);
+}
+:root[data-theme='light'] .form-select optgroup {
+  background: #eef2f8;
+  color: var(--muted);
+}
 
 /* Radio group (거래방식) */
 .radio-group {
