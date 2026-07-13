@@ -1,8 +1,12 @@
 // KB 시계열 완전 자동 갱신: 확인 → 다운로드 → 인제스트 → (옵션) 발행.
 //
 // KB부동산 통계 API(api.kbland.kr, 인증 불필요)에서 최신 주간/월간 시계열 파일을 확인하고,
-// 새 파일이면 내려받아 kb-ingest.mjs 로 public/data/*.json 을 재생성한다.
+// 새 파일이면 내려받아 kb-ingest.mjs 로 public/data/*.json 을 재생성한 뒤, kb-api-augment.mjs 로
+// 엑셀에 없는 소도시(남원시 등)를 KB 데이터허브 API로 추가 병합한다.
 // 같은 파일이면 아무것도 하지 않는다(멱등) — 스케줄러가 매주 돌려도 안전하다.
+//
+// ⚠️ 인제스트는 JSON을 통째로 재생성하므로 소도시 보강도 매 갱신마다 다시 적용해야 한다.
+//    (보강 없이 발행하면 프로덕션에서 소도시가 사라진다 → 보강은 발행 전 필수 단계.)
 //
 // 사용법:
 //   node scripts/kb-update.mjs               # 확인 + 다운로드 + 인제스트
@@ -146,6 +150,16 @@ async function main() {
   // 3) 인제스트 (kb-ingest.mjs 가 diff 리포트·무결성 검증 포함)
   log('인제스트 실행…');
   execFileSync(process.execPath, [path.join(ROOT, 'scripts', 'kb-ingest.mjs'), '--weekly', weeklyPath, '--monthly', monthlyPath], {
+    cwd: ROOT,
+    stdio: 'inherit',
+  });
+
+  // 3-2) 소도시 API 보강 (엑셀에 없는 시군구를 KB 데이터허브 공개 API로 add-only 병합).
+  //      인제스트가 JSON을 재생성했으므로 매번 다시 적용해야 남원시 등이 유지된다.
+  //      의존성 없음(node 내장 fetch/fs)이라 CI 추가 설치 불필요. 실패 시 발행/커밋 없이 중단
+  //      (execFileSync 가 throw → main catch → exit 1) → 옛 번들이 유지돼 소도시 소실을 막는다.
+  log('소도시 API 보강 실행…');
+  execFileSync(process.execPath, [path.join(ROOT, 'scripts', 'kb-api-augment.mjs')], {
     cwd: ROOT,
     stdio: 'inherit',
   });
